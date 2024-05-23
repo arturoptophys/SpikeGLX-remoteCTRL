@@ -99,7 +99,8 @@ def getParams_test():
     sglx.c_sglx_close(hSglx)
     sglx.c_sglx_destroyHandle(hSglx)
 
-sglx.c_sglx_setNextFileName(hSglx,'D:\\Neuropixels_Data\\test'.encode())
+
+sglx.c_sglx_setNextFileName(hSglx, 'D:\\Neuropixels_Data\\test'.encode())
 """
 ok = c_sglx_setRunName(hSglx, "test".encode() )
 c_sglx_setNextFileName(hSglx,'otherdir/yyy_g0/yyy_g0_t0'.encode())
@@ -126,6 +127,7 @@ dict_items([('imBistAtDetect', 'true'), ('imCalPolicy', '0'), ('imEnabled', 'tru
  ('imSvySecPerBnk', '35'), ('imTrgRising', 'true'), ('imTrgSource', '0'), ('obNOneBox', '0')])
 
 """
+
 
 # Structure.
 #

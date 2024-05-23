@@ -251,7 +251,7 @@ class SpikeGLX_Controller:
                         (self.session_path / NP_FOLDER).mkdir(exist_ok=True)  # make sure we have the ephys folder ready
                         # copy only the folder content not the folder itself
                         [shutil.copy2(file, self.session_path / NP_FOLDER) for file in self.recording_file.rglob('*')]
-                        #shutil.copytree(self.recording_file, self.session_path / NP_FOLDER / self.recording_file.name)
+                        # shutil.copytree(self.recording_file, self.session_path / NP_FOLDER / self.recording_file.name)
                     else:
                         raise FileNotFoundError(f"Session path {self.session_path} doesnt exist")
 
@@ -279,7 +279,7 @@ class SpikeGLX_Controller:
 
     def exit_remote_mode(self):
         self.remote_thread_stop.set()
-        #self.remote_thread.join()
+        # self.remote_thread.join()
         self.socket_comm.close_socket()
         self.is_remote_ctr = False
 
@@ -328,7 +328,7 @@ class SpikeGLX_Controller:
 
                     elif message['type'] == MessageType.stop_video.value:
                         self.log.info("got message to stop")
-                        #self.stop_spikeglx() # TODO not sure which one to use
+                        # self.stop_spikeglx() # TODO not sure which one to use
                         if self.main:
                             self.main.stop_recording()
                         else:
@@ -369,5 +369,5 @@ if __name__ == '__main__':
     controller.socket_comm.threaded_accept_connection()
     while not controller.socket_comm.connected:
         time.sleep(0.5)
-        #controller.log.info("waiting for remote connection")
+        # controller.log.info("waiting for remote connection")
     controller.enter_remote_mode()

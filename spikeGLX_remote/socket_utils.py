@@ -86,10 +86,11 @@ class SocketMessage:
                            'session_path': self._session_path}
         self.purge_files = {'type': MessageType.purge_files.value, 'session_id': self._session_id}
 
-        self.view_spike_glx = {'type': MessageType.start_video_view.value, 'session_id': self._session_id}  # maybe further params
+        self.view_spike_glx = {'type': MessageType.start_video_view.value,
+                               'session_id': self._session_id}  # maybe further params
         self.start_spike_glx = {'type': MessageType.start_video_rec.value, 'session_id': self._session_id}
         self.stop_spike_glx = {'type': MessageType.stop_video.value}
-        #if i add new ones they also need to addd to the update_messages function or automate this ?
+        # if i add new ones they also need to addd to the update_messages function or automate this ?
 
     @property
     def pulse_lag(self):
@@ -160,7 +161,6 @@ class SocketMessage:
         self.view_spike_glx.update(**{'session_id': self._session_id})  # maybe further params
         self.start_spike_glx.update(**{'session_id': self._session_id})
         self.stop_spike_glx.update(**{'session_id': self._session_id})
-
 
 
 class SocketComm:
@@ -423,6 +423,7 @@ if __name__ == "__main__":
 
     import json
     from pathlib import PureWindowsPath
+
     sock = SocketComm('client', port=8882)
     sock.create_socket()
     sock.connect()

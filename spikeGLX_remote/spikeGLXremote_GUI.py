@@ -21,10 +21,12 @@ if os.sys.platform == "win32":
 else:
     DEVELOPMENT = True
 
+
 class SpikeGLX_ControllerGUI(QMainWindow):
     """
     GUI wrapper for SpikeGLX_Controller
     """
+
     def __init__(self):
         super(SpikeGLX_ControllerGUI, self).__init__()
         self.rec_timer = None
@@ -131,7 +133,7 @@ class SpikeGLX_ControllerGUI(QMainWindow):
         """proxy for starting recording using the button"""
         if not self.spikeglx_ctrl.is_remote_ctr:
             self.spikeglx_ctrl.session_id = self.SessionIDlineEdit.text()
-            if len(self.spikeglx_ctrl.session_id) == 0:   # if empty, generate a session id
+            if len(self.spikeglx_ctrl.session_id) == 0:  # if empty, generate a session id
                 self.spikeglx_ctrl.session_id = f'MusterMausTest_{time.strftime("%Y%m%d_%H%M%S")}'
             if self.spikeglx_ctrl.ask_is_running():  # if already running
                 self.spikeglx_ctrl.start_recording()
@@ -321,6 +323,3 @@ def start_gui():
 if __name__ == '__main__':
     logging.info('Starting via __main__')
     sys.exit(start_gui())
-
-
-

@@ -21,6 +21,7 @@ class RemoteConnDialog(QtWidgets.QDialog):
     """
     Dialog to wait for remote connection, with abort button
     """
+
     def __init__(self, socket_comm, parent=None):
         super().__init__(parent)
         self.parent = parent
