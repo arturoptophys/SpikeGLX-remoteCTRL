@@ -25,7 +25,7 @@ extensions = ['myst_parser', 'sphinx.ext.autodoc', 'sphinx.ext.napoleon',
 templates_path = ['_templates']
 exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store']
 
-autodoc_mock_imports = ['GUI']
+#autodoc_mock_imports = ['GUI']
 
 # -- Options for HTML output -------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#options-for-html-output

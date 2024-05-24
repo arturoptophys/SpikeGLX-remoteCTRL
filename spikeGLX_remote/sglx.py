@@ -1,8 +1,16 @@
 # -*- coding: utf-8 -*-
 # modified from https://github.com/billkarsh/SpikeGLX-CPP-SDK
 from ctypes import *
-
-sglx = CDLL("SglxApi.dll", winmode=0)
+from pathlib import Path
+dll_path = Path(__file__).parent.absolute() / "SglxApi.dll"
+#add current directory to path
+import sys
+sys.path.append(str(Path(__file__).parent))
+# Load the SpikeGLX DLL.
+try:
+    sglx = CDLL(str(dll_path), winmode=0)
+except FileNotFoundError:
+    sglx = CDLL(str(dll_path))
 
 # Usage ------------------
 # A client application first creates a connection handle:
