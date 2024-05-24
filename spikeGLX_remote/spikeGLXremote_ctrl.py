@@ -6,7 +6,7 @@ from ctypes import byref, c_bool
 from pathlib import Path
 from threading import Thread, Event
 
-from socket_utils import SocketComm, SocketMessage, MessageType
+from spikeGLX_remote.socket_utils import SocketComm, SocketMessage, MessageType
 
 log = logging.getLogger('controller')
 log.setLevel(logging.DEBUG)
@@ -17,7 +17,7 @@ else:
     DEVELOPMENT = True
 
 if not DEVELOPMENT:
-    import sglx as sglx
+    import spikeGLX_remote.sglx as sglx
 
 from config import *
 

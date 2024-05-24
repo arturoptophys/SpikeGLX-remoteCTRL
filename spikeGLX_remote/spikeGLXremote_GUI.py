@@ -4,12 +4,12 @@ import time
 from pathlib import Path
 from queue import Queue
 import logging
-from GUI_utils import RemoteConnDialog
+from spikeGLX_remote.GUI_utils import RemoteConnDialog
 from PyQt6.QtWidgets import QApplication, QMainWindow, QFileDialog, QMessageBox
 from PyQt6.QtCore import Qt, QTimer
 from PyQt6 import uic, QtGui
 
-from spikeGLXremote_ctrl import SpikeGLX_Controller
+from spikeGLX_remote.spikeGLXremote_ctrl import SpikeGLX_Controller
 
 log = logging.getLogger('main')
 log.setLevel(logging.DEBUG)
