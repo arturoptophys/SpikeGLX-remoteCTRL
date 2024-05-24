@@ -32,4 +32,7 @@ exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store']
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#options-for-html-output
 
 html_theme = 'nature'
+html_theme_options = {
+    "sidebarwidth": "25%"
+}
 html_static_path = ['_static']

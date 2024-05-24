@@ -32,6 +32,7 @@ class SpikeGLX_Controller:
     """
 
     # TODO check if we are not on same machine then disable the copy functionality
+    # TODO move the NP_FOLDER to the remote controller and not have it hardcoded here
     # if no main use some more descriptive console output
     def __init__(self, main=None):
         self.main = main  # reference to the main gui
@@ -49,7 +50,7 @@ class SpikeGLX_Controller:
         self.log = logging.getLogger('SpikeGLXController')
         self.log.setLevel(logging.INFO)
         self.socket_comm = SocketComm('server', host=SPIKEGLX_HOST, port=SPIKEGLX_PORT)
-        self.save_path = Path(PATH2DATA)
+        self._save_path = Path(PATH2DATA)
         self.last_t_socket = time.monotonic()  # last time we checked for a message from the remote controller
         self.check_interval = 1  # s check interval for messages
 
@@ -57,6 +58,16 @@ class SpikeGLX_Controller:
             self.connect_spikeglx()
             if self.hSglx is None:
                 self.log.error("Error connecting to SpikeGLX")
+    @property
+    def save_path(self):
+        return self._save_path
+
+    @save_path.setter
+    def save_path(self, path: [str, Path]):
+        try:
+            self._save_path = Path(path)
+        except TypeError:
+            self.log.error("Error setting save path, must be a str or Path object")
 
     def connect_spikeglx(self):
         """create the connection handle to the SpikeGLX process"""

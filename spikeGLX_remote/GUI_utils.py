@@ -1,7 +1,7 @@
 from PyQt6 import QtWidgets, QtCore
 from PyQt6.QtWidgets import QMessageBox
 from PyQt6 import QtGui
-
+from pathlib import Path
 
 class InfoDialog(QMessageBox):
     """
@@ -29,7 +29,7 @@ class RemoteConnDialog(QtWidgets.QDialog):
         self.setWindowTitle('Remote Connection')
         self.abort_button = QtWidgets.QPushButton("Abort")
         self.abort_button.clicked.connect(self.stopwaiting)
-        self.abort_button.setIcon(QtGui.QIcon("./GUI/icons/HandRaised.svg"))
+        self.abort_button.setIcon(QtGui.QIcon(str(Path(__file__).parent / 'GUI' / "icons/HandRaised.svg")))
         self.label = QtWidgets.QLabel("waiting for remote connection...")
         layout = QtWidgets.QVBoxLayout()
         layout.addWidget(self.label)

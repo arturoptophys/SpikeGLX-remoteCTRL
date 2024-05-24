@@ -169,12 +169,12 @@ class SpikeGLX_ControllerGUI(QMainWindow):
 
     def set_Icons(self):
         """sets icons to button etc."""
-        self.RemoteModeButton.setIcon(QtGui.QIcon("./GUI/icons/Signal.svg"))
-        self.RUNButton.setIcon(QtGui.QIcon("./GUI/icons/play.svg"))
-        self.RECButton.setIcon(QtGui.QIcon("./GUI/icons/record.svg"))
-        self.STOPButton.setIcon(QtGui.QIcon("./GUI/icons/stop.svg"))
-        self.Save_pathButton.setIcon(QtGui.QIcon("./GUI/icons/folder.svg"))
-        self.EmergencyStopTaskB.setIcon(QtGui.QIcon("./GUI/icons/HandRaised.svg"))
+        self.RemoteModeButton.setIcon(QtGui.QIcon(str(self._path2file.parent / 'GUI' / "icons/Signal.svg")))
+        self.RUNButton.setIcon(QtGui.QIcon(str(self._path2file.parent / 'GUI' / "icons/play.svg")))
+        self.RECButton.setIcon(QtGui.QIcon(str(self._path2file.parent / 'GUI' / "icons/record.svg")))
+        self.STOPButton.setIcon(QtGui.QIcon(str(self._path2file.parent / 'GUI' / "icons/stop.svg")))
+        self.Save_pathButton.setIcon(QtGui.QIcon(str(self._path2file.parent / 'GUI' / "icons/folder.svg")))
+        self.EmergencyStopTaskB.setIcon(QtGui.QIcon(str(self._path2file.parent / 'GUI' / "icons/HandRaised.svg")))
 
     def _poll_console_queue(self):
         """Write any queued console text to the console text area from the main thread."""
@@ -239,7 +239,7 @@ class SpikeGLX_ControllerGUI(QMainWindow):
         self.spikeglx_ctrl.enter_remote_mode()
         self.Client_label.setText(f"Connected to Client:\n{self.spikeglx_ctrl.socket_comm.addr}")
         self.RemoteModeButton.setText("EXIT\nREMOTE-mode")
-        self.RemoteModeButton.setIcon(QtGui.QIcon("./GUI/icons/SignalSlash.svg"))
+        self.RemoteModeButton.setIcon(QtGui.QIcon(str(self._path2file.parent / 'GUI' / "icons/SignalSlash.svg")))
         self.RUNButton.setEnabled(False)
         self.RECButton.setEnabled(False)
         self.Save_pathButton.setEnabled(False)
@@ -249,7 +249,7 @@ class SpikeGLX_ControllerGUI(QMainWindow):
         self.spikeglx_ctrl.exit_remote_mode()
         self.Client_label.setText("disconnected")
         self.RemoteModeButton.setText("Enable\nREMOTE-mode")
-        self.RemoteModeButton.setIcon(QtGui.QIcon("./GUI/icons/Signal.svg"))
+        self.RemoteModeButton.setIcon(QtGui.QIcon(str(self._path2file.parent / 'GUI' /"icons/Signal.svg")))
 
         # enable all buttons
         self.RUNButton.setEnabled(True)
