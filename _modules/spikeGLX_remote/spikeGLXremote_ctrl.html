@@ -1,0 +1,584 @@
+<!DOCTYPE html>
+
+<html lang="en" data-content_root="../../">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>spikeGLX_remote.spikeGLXremote_ctrl &#8212; SpikeGLX_remote 0.5.0 documentation</title>
+    <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=a746c00c" />
+    <link rel="stylesheet" type="text/css" href="../../_static/nature.css?v=e3cf3792" />
+    <script src="../../_static/documentation_options.js?v=1dd76d02"></script>
+    <script src="../../_static/doctools.js?v=9a2dae69"></script>
+    <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+  </head><body>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../index.html">SpikeGLX_remote 0.5.0 documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../index.html" accesskey="U">Module code</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">spikeGLX_remote.spikeGLXremote_ctrl</a></li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for spikeGLX_remote.spikeGLXremote_ctrl</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span> <span class="nn">logging</span>
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">import</span> <span class="nn">shutil</span>
+<span class="kn">import</span> <span class="nn">time</span>
+<span class="kn">from</span> <span class="nn">ctypes</span> <span class="kn">import</span> <span class="n">byref</span><span class="p">,</span> <span class="n">c_bool</span>
+<span class="kn">from</span> <span class="nn">pathlib</span> <span class="kn">import</span> <span class="n">Path</span>
+<span class="kn">from</span> <span class="nn">threading</span> <span class="kn">import</span> <span class="n">Thread</span><span class="p">,</span> <span class="n">Event</span>
+
+<span class="kn">from</span> <span class="nn">spikeGLX_remote.socket_utils</span> <span class="kn">import</span> <span class="n">SocketComm</span><span class="p">,</span> <span class="n">SocketMessage</span><span class="p">,</span> <span class="n">MessageType</span>
+
+<span class="n">log</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="s1">&#39;controller&#39;</span><span class="p">)</span>
+<span class="n">log</span><span class="o">.</span><span class="n">setLevel</span><span class="p">(</span><span class="n">logging</span><span class="o">.</span><span class="n">DEBUG</span><span class="p">)</span>
+
+<span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">sys</span><span class="o">.</span><span class="n">platform</span> <span class="o">==</span> <span class="s2">&quot;win32&quot;</span><span class="p">:</span>
+    <span class="n">DEVELOPMENT</span> <span class="o">=</span> <span class="kc">False</span>
+<span class="k">else</span><span class="p">:</span>
+    <span class="n">DEVELOPMENT</span> <span class="o">=</span> <span class="kc">True</span>
+
+<span class="k">if</span> <span class="ow">not</span> <span class="n">DEVELOPMENT</span><span class="p">:</span>
+    <span class="kn">import</span> <span class="nn">spikeGLX_remote.sglx</span> <span class="k">as</span> <span class="nn">sglx</span>
+
+<span class="kn">from</span> <span class="nn">config</span> <span class="kn">import</span> <span class="o">*</span>
+
+
+<div class="viewcode-block" id="SpikeGLX_Controller">
+<a class="viewcode-back" href="../../api.html#spikeGLX_remote.spikeGLXremote_ctrl.SpikeGLX_Controller">[docs]</a>
+<span class="k">class</span> <span class="nc">SpikeGLX_Controller</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    This class uses the spikeGLX-api to control the SpikeGLX recorder. Needs to run on a windows computer due to only</span>
+<span class="sd">    dlls being available.</span>
+<span class="sd">    This application receives commands from the remote main TaskController via sockets, it can receive the session name</span>
+<span class="sd">    for the recording, start/stop recording, start viewing, copy files to the data server, purge files.</span>
+
+<span class="sd">    :param main: reference to the main GUI</span>
+<span class="sd">    :type main: GUI_utils.MainWindow</span>
+
+<span class="sd">    :parameter remote_thread_stop: Event to stop the remote thread</span>
+<span class="sd">    :type remote_thread_stop: threading.Event</span>
+<span class="sd">    :parameter remote_thread: thread to check for remote messages</span>
+<span class="sd">    :type remote_thread: threading.Thread</span>
+<span class="sd">    :parameter files_copied: flag if files were copied</span>
+<span class="sd">    :type files_copied: bool</span>
+<span class="sd">    :parameter session_path: path to copy the files to</span>
+<span class="sd">    :type session_path: Path</span>
+<span class="sd">    :parameter is_remote_ctr: flag if in remote control mode</span>
+<span class="sd">    :type is_remote_ctr: bool</span>
+<span class="sd">    :parameter rec_start_time: time when recording started</span>
+<span class="sd">    :type rec_start_time: float</span>
+<span class="sd">    :parameter hSglx: handle to the spikeglx api connection</span>
+<span class="sd">    :type hSglx: ctypes.c_void_p</span>
+<span class="sd">    :parameter is_recording: flag whether currently recording</span>
+<span class="sd">    :type is_recording: bool</span>
+<span class="sd">    :parameter is_viewing: flag whether currently viewing</span>
+<span class="sd">    :type is_viewing: bool</span>
+<span class="sd">    :parameter session_id: placeholder for the current session id</span>
+<span class="sd">    :type session_id: str</span>
+<span class="sd">    :parameter recording_file: placeholder for the recording file</span>
+<span class="sd">    :type recording_file: Path</span>
+<span class="sd">    :parameter log: logger object</span>
+<span class="sd">    :type log: logging.Logger</span>
+<span class="sd">    :parameter socket_comm: socket communication object</span>
+<span class="sd">    :type socket_comm: SocketComm</span>
+<span class="sd">    :parameter _save_path: path to save the recorded files</span>
+<span class="sd">    :type _save_path: Path</span>
+<span class="sd">    :parameter last_t_socket: last time we checked for a message from the remote controller</span>
+<span class="sd">    :type last_t_socket: float</span>
+<span class="sd">    :parameter check_interval: check interval for messages</span>
+<span class="sd">    :type check_interval: int</span>
+<span class="sd">    :parameter can_copy: flag if files can be copied</span>
+<span class="sd">    :type can_copy: bool</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># TODO if no main use some more descriptive console output</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">main</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">main</span> <span class="o">=</span> <span class="n">main</span>  <span class="c1"># reference to the main gui</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">remote_thread_stop</span> <span class="o">=</span> <span class="n">Event</span><span class="p">()</span> <span class="c1"># event to stop the remote thread</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">remote_thread</span> <span class="o">=</span> <span class="kc">None</span> <span class="c1"># thread to check for remote messages</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">files_copied</span> <span class="o">=</span> <span class="kc">False</span>  <span class="c1"># bool if files were copied</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">session_path</span> <span class="o">=</span> <span class="kc">None</span>  <span class="c1"># path to copy the files to</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">is_remote_ctr</span> <span class="o">=</span> <span class="kc">False</span>  <span class="c1"># bool if in remote control mode</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">rec_start_time</span> <span class="o">=</span> <span class="kc">None</span>  <span class="c1"># time when recording started</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">hSglx</span> <span class="o">=</span> <span class="kc">None</span>  <span class="c1"># handle to the spikeglx api connection</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">is_recording</span> <span class="o">=</span> <span class="kc">False</span>  <span class="c1"># bool whether currently recording</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">is_viewing</span> <span class="o">=</span> <span class="kc">False</span>  <span class="c1"># bool whether currently viewing</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">session_id</span> <span class="o">=</span> <span class="kc">None</span>  <span class="c1"># placeholder for the current session id</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">recording_file</span> <span class="o">=</span> <span class="kc">None</span>  <span class="c1"># placeholder for the recording file</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">log</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="s1">&#39;SpikeGLXController&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="o">.</span><span class="n">setLevel</span><span class="p">(</span><span class="n">logging</span><span class="o">.</span><span class="n">INFO</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">socket_comm</span> <span class="o">=</span> <span class="n">SocketComm</span><span class="p">(</span><span class="s1">&#39;server&#39;</span><span class="p">,</span> <span class="n">host</span><span class="o">=</span><span class="n">REMOTE_HOST</span><span class="p">,</span> <span class="n">port</span><span class="o">=</span><span class="n">REMOTE_PORT</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_save_path</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">PATH2DATA</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">last_t_socket</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">monotonic</span><span class="p">()</span>  <span class="c1"># last time we checked for a message from the remote controller</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">check_interval</span> <span class="o">=</span> <span class="mi">1</span>  <span class="c1"># s check interval for messages</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">can_copy</span> <span class="o">=</span> <span class="kc">True</span> <span class="k">if</span> <span class="n">SPIKEGLX_COMPUTER</span> <span class="o">==</span> <span class="s1">&#39;localhost&#39;</span> <span class="k">else</span> <span class="kc">False</span>  <span class="c1"># cant copy files if not on same machine</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">DEVELOPMENT</span><span class="p">:</span>  <span class="c1"># switch off spikeGLX if in development mode (not on windows)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">connect_spikeglx</span><span class="p">()</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">hSglx</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s2">&quot;Error connecting to SpikeGLX&quot;</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">save_path</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_save_path</span>
+
+    <span class="nd">@save_path</span><span class="o">.</span><span class="n">setter</span>
+    <span class="k">def</span> <span class="nf">save_path</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">path</span><span class="p">:</span> <span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Path</span><span class="p">]):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        sets the save path for the recorded files, ensures its a Path object</span>
+<span class="sd">        :param path: str or Path object to set the save path</span>
+<span class="sd">        :return:</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_save_path</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">TypeError</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s2">&quot;Error setting save path, must be a str or Path object&quot;</span><span class="p">)</span>
+
+<div class="viewcode-block" id="SpikeGLX_Controller.connect_spikeglx">
+<a class="viewcode-back" href="../../api.html#spikeGLX_remote.spikeGLXremote_ctrl.SpikeGLX_Controller.connect_spikeglx">[docs]</a>
+    <span class="k">def</span> <span class="nf">connect_spikeglx</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;create the connection handle to the SpikeGLX process&quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">hSglx</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;Calling connect to spikeGLX...&quot;</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">hSglx</span> <span class="o">=</span> <span class="n">sglx</span><span class="o">.</span><span class="n">c_sglx_createHandle</span><span class="p">()</span>
+
+            <span class="c1"># Using default loopback address and port</span>
+            <span class="k">if</span> <span class="n">sglx</span><span class="o">.</span><span class="n">c_sglx_connect</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">hSglx</span><span class="p">,</span> <span class="n">SPIKEGLX_COMPUTER</span><span class="o">.</span><span class="n">encode</span><span class="p">(),</span> <span class="n">SPIKEGLX_PORT</span><span class="p">):</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Connected to </span><span class="si">{</span><span class="n">sglx</span><span class="o">.</span><span class="n">c_sglx_getVersion</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">hSglx</span><span class="p">)</span><span class="o">.</span><span class="n">decode</span><span class="p">()</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">error</span> <span class="o">=</span> <span class="n">sglx</span><span class="o">.</span><span class="n">c_sglx_getError</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">hSglx</span><span class="p">)</span><span class="o">.</span><span class="n">decode</span><span class="p">()</span>
+                <span class="k">if</span> <span class="n">error</span> <span class="o">==</span> <span class="s2">&quot;sglx_connect: tcpConnect: Can&#39;t connect: No error (0)&quot;</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s2">&quot;Cant establish SpikeGLX connection. is it running ?&quot;</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">hSglx</span> <span class="o">=</span> <span class="kc">None</span></div>
+
+
+<div class="viewcode-block" id="SpikeGLX_Controller.disconnect_spikeglx">
+<a class="viewcode-back" href="../../api.html#spikeGLX_remote.spikeGLXremote_ctrl.SpikeGLX_Controller.disconnect_spikeglx">[docs]</a>
+    <span class="k">def</span> <span class="nf">disconnect_spikeglx</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        disconnect from the SpikeGLX and delete handle</span>
+<span class="sd">        :return:</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">hSglx</span><span class="p">:</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">ask_is_running</span><span class="p">()</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">ask_is_recording</span><span class="p">():</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">stop_spikeglx</span><span class="p">()</span>
+            <span class="n">sglx</span><span class="o">.</span><span class="n">c_sglx_close</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">hSglx</span><span class="p">)</span>
+            <span class="n">sglx</span><span class="o">.</span><span class="n">c_sglx_destroyHandle</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">hSglx</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">hSglx</span> <span class="o">=</span> <span class="kc">None</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;Closed connection to SpikeGLX&quot;</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="SpikeGLX_Controller.ask_is_initialized">
+<a class="viewcode-back" href="../../api.html#spikeGLX_remote.spikeGLXremote_ctrl.SpikeGLX_Controller.ask_is_initialized">[docs]</a>
+    <span class="k">def</span> <span class="nf">ask_is_initialized</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        checks if spikeGLX is currently initialized, and thus ready to start</span>
+<span class="sd">        :return: bool if initialized</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">hid</span> <span class="o">=</span> <span class="n">c_bool</span><span class="p">()</span>
+        <span class="n">ok</span> <span class="o">=</span> <span class="n">sglx</span><span class="o">.</span><span class="n">c_sglx_isInitialized</span><span class="p">(</span><span class="n">byref</span><span class="p">(</span><span class="n">hid</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">hSglx</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">ok</span><span class="p">:</span>
+            <span class="k">return</span> <span class="nb">bool</span><span class="p">(</span><span class="n">hid</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">error</span> <span class="o">=</span> <span class="n">sglx</span><span class="o">.</span><span class="n">c_sglx_getError</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">hSglx</span><span class="p">)</span><span class="o">.</span><span class="n">decode</span><span class="p">()</span>
+            <span class="k">if</span> <span class="n">error</span> <span class="o">==</span> <span class="s2">&quot;sglx_isInitialized: tcpConnect: Can&#39;t connect: No error (0)&quot;</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s2">&quot;SpikeGLX connection broken, try to reconnect&quot;</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">disconnect_spikeglx</span><span class="p">()</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="n">error</span><span class="p">)</span>
+            <span class="k">return</span> <span class="kc">False</span></div>
+
+
+<div class="viewcode-block" id="SpikeGLX_Controller.ask_is_running">
+<a class="viewcode-back" href="../../api.html#spikeGLX_remote.spikeGLXremote_ctrl.SpikeGLX_Controller.ask_is_running">[docs]</a>
+    <span class="k">def</span> <span class="nf">ask_is_running</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        checks if spikeGLX is currently running</span>
+<span class="sd">        :return: bool if running</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">hid</span> <span class="o">=</span> <span class="n">c_bool</span><span class="p">()</span>
+        <span class="n">ok</span> <span class="o">=</span> <span class="n">sglx</span><span class="o">.</span><span class="n">c_sglx_isRunning</span><span class="p">(</span><span class="n">byref</span><span class="p">(</span><span class="n">hid</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">hSglx</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">ok</span><span class="p">:</span>
+            <span class="k">return</span> <span class="nb">bool</span><span class="p">(</span><span class="n">hid</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">error</span> <span class="o">=</span> <span class="n">sglx</span><span class="o">.</span><span class="n">c_sglx_getError</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">hSglx</span><span class="p">)</span><span class="o">.</span><span class="n">decode</span><span class="p">()</span>
+            <span class="k">if</span> <span class="n">error</span> <span class="o">==</span> <span class="s2">&quot;sglx_isRunning: tcpConnect: Can&#39;t connect: No error (0)&quot;</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s2">&quot;SpikeGLX connection broken, try to reconnect&quot;</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">disconnect_spikeglx</span><span class="p">()</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="n">error</span><span class="p">)</span>
+            <span class="k">return</span> <span class="kc">False</span></div>
+
+
+<div class="viewcode-block" id="SpikeGLX_Controller.ask_is_recording">
+<a class="viewcode-back" href="../../api.html#spikeGLX_remote.spikeGLXremote_ctrl.SpikeGLX_Controller.ask_is_recording">[docs]</a>
+    <span class="k">def</span> <span class="nf">ask_is_recording</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        checks if spikeGLX is currently recording</span>
+<span class="sd">        :return: bool if recording</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">hid</span> <span class="o">=</span> <span class="n">c_bool</span><span class="p">()</span>
+        <span class="n">ok</span> <span class="o">=</span> <span class="n">sglx</span><span class="o">.</span><span class="n">c_sglx_isSaving</span><span class="p">(</span><span class="n">byref</span><span class="p">(</span><span class="n">hid</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">hSglx</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">ok</span><span class="p">:</span>
+            <span class="k">return</span> <span class="nb">bool</span><span class="p">(</span><span class="n">hid</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">sglx</span><span class="o">.</span><span class="n">c_sglx_getError</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">hSglx</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="k">return</span> <span class="kc">False</span></div>
+
+
+<div class="viewcode-block" id="SpikeGLX_Controller.start_recording">
+<a class="viewcode-back" href="../../api.html#spikeGLX_remote.spikeGLXremote_ctrl.SpikeGLX_Controller.start_recording">[docs]</a>
+    <span class="k">def</span> <span class="nf">start_recording</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Sends message to spikeGLX process to start recording.</span>
+<span class="sd">        To call this spikeGLX needs to be initialized and running.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">files_copied</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">ask_is_running</span><span class="p">():</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">recording_file</span> <span class="o">=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">save_path</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">session_id</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">recording_file</span><span class="o">.</span><span class="n">mkdir</span><span class="p">(</span><span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+            <span class="n">file_name</span> <span class="o">=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">recording_file</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">session_id</span><span class="p">)</span><span class="o">.</span><span class="n">as_posix</span><span class="p">()</span><span class="o">.</span><span class="n">encode</span><span class="p">()</span>
+            <span class="n">ok</span> <span class="o">=</span> <span class="n">sglx</span><span class="o">.</span><span class="n">c_sglx_setNextFileName</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">hSglx</span><span class="p">,</span> <span class="n">file_name</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">ok</span><span class="p">:</span>
+                <span class="n">ok</span> <span class="o">=</span> <span class="n">sglx</span><span class="o">.</span><span class="n">c_sglx_setRecordingEnable</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">hSglx</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">ok</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Started recording session </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">session_id</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+                    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">socket_comm</span><span class="o">.</span><span class="n">connected</span><span class="p">:</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">socket_comm</span><span class="o">.</span><span class="n">send_json_message</span><span class="p">(</span><span class="n">SocketMessage</span><span class="o">.</span><span class="n">respond_recording</span><span class="p">)</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">is_recording</span> <span class="o">=</span> <span class="kc">True</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">rec_start_time</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">monotonic</span><span class="p">()</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">sglx</span><span class="o">.</span><span class="n">c_sglx_getError</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">hSglx</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">send_socket_error</span><span class="p">()</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">sglx</span><span class="o">.</span><span class="n">c_sglx_getError</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">hSglx</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">send_socket_error</span><span class="p">()</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">send_socket_error</span><span class="p">()</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s2">&quot;SpikeGLX not running&quot;</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="SpikeGLX_Controller.start_run">
+<a class="viewcode-back" href="../../api.html#spikeGLX_remote.spikeGLXremote_ctrl.SpikeGLX_Controller.start_run">[docs]</a>
+    <span class="k">def</span> <span class="nf">start_run</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Sends message to spikeGLX process to start viewing.</span>
+<span class="sd">        To call this spikeGLX needs to be initialized.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">ask_is_initialized</span><span class="p">():</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">session_id</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">session_id</span> <span class="o">=</span> <span class="sa">f</span><span class="s1">&#39;MusterMausTest_</span><span class="si">{</span><span class="n">time</span><span class="o">.</span><span class="n">strftime</span><span class="p">(</span><span class="s2">&quot;%Y%m</span><span class="si">%d</span><span class="s2">_%H%M%S&quot;</span><span class="p">)</span><span class="si">}</span><span class="s1">&#39;</span>
+            <span class="n">ok</span> <span class="o">=</span> <span class="n">sglx</span><span class="o">.</span><span class="n">c_sglx_startRun</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">hSglx</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">session_id</span><span class="o">.</span><span class="n">encode</span><span class="p">())</span>
+            <span class="k">if</span> <span class="n">ok</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Started viewing session </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">session_id</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">socket_comm</span><span class="o">.</span><span class="n">connected</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">socket_comm</span><span class="o">.</span><span class="n">send_json_message</span><span class="p">(</span><span class="n">SocketMessage</span><span class="o">.</span><span class="n">respond_viewing</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">is_viewing</span> <span class="o">=</span> <span class="kc">True</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">rec_start_time</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">monotonic</span><span class="p">()</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">sglx</span><span class="o">.</span><span class="n">c_sglx_getError</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">hSglx</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">send_socket_error</span><span class="p">()</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s2">&quot;SpikeGLX not initialized&quot;</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="SpikeGLX_Controller.start_run_record">
+<a class="viewcode-back" href="../../api.html#spikeGLX_remote.spikeGLXremote_ctrl.SpikeGLX_Controller.start_run_record">[docs]</a>
+    <span class="k">def</span> <span class="nf">start_run_record</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        this combines the run and recording start into single function,</span>
+<span class="sd">        not sure if needed probably manually start the run and then the recording via remote</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">ok</span> <span class="o">=</span> <span class="n">sglx</span><span class="o">.</span><span class="n">c_sglx_startRun</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">hSglx</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">session_id</span><span class="o">.</span><span class="n">encode</span><span class="p">())</span>
+        <span class="k">if</span> <span class="n">ok</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">recording_file</span> <span class="o">=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">save_path</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">session_id</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">recording_file</span><span class="o">.</span><span class="n">mkdir</span><span class="p">(</span><span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+            <span class="n">file_name</span> <span class="o">=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">recording_file</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">session_id</span><span class="p">)</span><span class="o">.</span><span class="n">as_posix</span><span class="p">()</span><span class="o">.</span><span class="n">encode</span><span class="p">()</span>
+            <span class="n">ok</span> <span class="o">=</span> <span class="n">sglx</span><span class="o">.</span><span class="n">c_sglx_setNextFileName</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">hSglx</span><span class="p">,</span> <span class="n">file_name</span><span class="p">)</span>
+            <span class="n">ok</span> <span class="o">=</span> <span class="n">sglx</span><span class="o">.</span><span class="n">c_sglx_setRecordingEnable</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">hSglx</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">ok</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Started recording session </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">session_id</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">socket_comm</span><span class="o">.</span><span class="n">connected</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">socket_comm</span><span class="o">.</span><span class="n">send_json_message</span><span class="p">(</span><span class="n">SocketMessage</span><span class="o">.</span><span class="n">respond_recording</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">is_recording</span> <span class="o">=</span> <span class="kc">True</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">rec_start_time</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">monotonic</span><span class="p">()</span></div>
+
+
+<div class="viewcode-block" id="SpikeGLX_Controller.stop_recording">
+<a class="viewcode-back" href="../../api.html#spikeGLX_remote.spikeGLXremote_ctrl.SpikeGLX_Controller.stop_recording">[docs]</a>
+    <span class="k">def</span> <span class="nf">stop_recording</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        stops recording to file but continues viewing</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">ask_is_recording</span><span class="p">():</span>
+            <span class="n">ok</span> <span class="o">=</span> <span class="n">sglx</span><span class="o">.</span><span class="n">c_sglx_setRecordingEnable</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">hSglx</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">ok</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Stopped recording session </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">session_id</span><span class="si">}</span><span class="s2"> after &quot;</span>
+                              <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">time</span><span class="o">.</span><span class="n">monotonic</span><span class="p">()</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="bp">self</span><span class="o">.</span><span class="n">rec_start_time</span><span class="si">:</span><span class="s2">.1f</span><span class="si">}</span><span class="s2">s&quot;</span><span class="p">)</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">socket_comm</span><span class="o">.</span><span class="n">connected</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">socket_comm</span><span class="o">.</span><span class="n">send_json_message</span><span class="p">(</span><span class="n">SocketMessage</span><span class="o">.</span><span class="n">respond_stop</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">is_recording</span> <span class="o">=</span> <span class="kc">False</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">sglx</span><span class="o">.</span><span class="n">c_sglx_getError</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">hSglx</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">send_socket_error</span><span class="p">()</span></div>
+
+
+<div class="viewcode-block" id="SpikeGLX_Controller.stop_spikeglx">
+<a class="viewcode-back" href="../../api.html#spikeGLX_remote.spikeGLXremote_ctrl.SpikeGLX_Controller.stop_spikeglx">[docs]</a>
+    <span class="k">def</span> <span class="nf">stop_spikeglx</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Sends message to spikeGLX process to stop recording or viewing</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">ok</span> <span class="o">=</span> <span class="n">sglx</span><span class="o">.</span><span class="n">c_sglx_stopRun</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">hSglx</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">ok</span><span class="p">:</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">is_recording</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Stopped recording session </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">session_id</span><span class="si">}</span><span class="s2"> after &quot;</span>
+                              <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">time</span><span class="o">.</span><span class="n">monotonic</span><span class="p">()</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="bp">self</span><span class="o">.</span><span class="n">rec_start_time</span><span class="si">:</span><span class="s2">.1f</span><span class="si">}</span><span class="s2">s&quot;</span><span class="p">)</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">socket_comm</span><span class="o">.</span><span class="n">connected</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">socket_comm</span><span class="o">.</span><span class="n">send_json_message</span><span class="p">(</span><span class="n">SocketMessage</span><span class="o">.</span><span class="n">respond_stop</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">is_recording</span> <span class="o">=</span> <span class="kc">False</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">is_viewing</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">sglx</span><span class="o">.</span><span class="n">c_sglx_getError</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">hSglx</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">send_socket_error</span><span class="p">()</span></div>
+
+
+<div class="viewcode-block" id="SpikeGLX_Controller.purge_recorded_file">
+<a class="viewcode-back" href="../../api.html#spikeGLX_remote.spikeGLXremote_ctrl.SpikeGLX_Controller.purge_recorded_file">[docs]</a>
+    <span class="k">def</span> <span class="nf">purge_recorded_file</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        deletes the previously recorded files</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">is_recording</span> <span class="ow">is</span> <span class="kc">False</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">recording_file</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">can_copy</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s2">&quot;Cant delete files if not on same machine&quot;</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">socket_comm</span><span class="o">.</span><span class="n">send_json_message</span><span class="p">(</span><span class="n">SocketMessage</span><span class="o">.</span><span class="n">respond_copy_fail</span><span class="p">)</span>
+                <span class="k">return</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Purging recorded files&quot;</span><span class="p">)</span>
+            <span class="n">shutil</span><span class="o">.</span><span class="n">rmtree</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">recording_file</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">recording_file</span> <span class="o">=</span> <span class="kc">None</span></div>
+
+
+<div class="viewcode-block" id="SpikeGLX_Controller.copy_recorded_file">
+<a class="viewcode-back" href="../../api.html#spikeGLX_remote.spikeGLXremote_ctrl.SpikeGLX_Controller.copy_recorded_file">[docs]</a>
+    <span class="k">def</span> <span class="nf">copy_recorded_file</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        copies the recorded files to the session folder on the data server</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">is_recording</span> <span class="ow">is</span> <span class="kc">False</span> <span class="ow">and</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">files_copied</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">recording_file</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="c1"># copy the recorded files to the session folder</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">can_copy</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s2">&quot;Cant copy files if not on same machine&quot;</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">socket_comm</span><span class="o">.</span><span class="n">send_json_message</span><span class="p">(</span><span class="n">SocketMessage</span><span class="o">.</span><span class="n">respond_copy_fail</span><span class="p">)</span>
+                <span class="k">return</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Copying folder </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">recording_file</span><span class="si">}</span><span class="s2"> to </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">session_path</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="k">if</span> <span class="s1">&#39;MusterMaus&#39;</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">session_id</span><span class="p">:</span>
+                    <span class="n">shutil</span><span class="o">.</span><span class="n">copytree</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">recording_file</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">session_path</span><span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">session_path</span><span class="o">.</span><span class="n">exists</span><span class="p">():</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">session_path</span><span class="o">.</span><span class="n">mkdir</span><span class="p">(</span><span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>  <span class="c1"># make sure we have the ephys folder ready</span>
+                        <span class="c1"># copy only the folder content not the folder itself</span>
+                        <span class="p">[</span><span class="n">shutil</span><span class="o">.</span><span class="n">copy2</span><span class="p">(</span><span class="n">file</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">session_path</span><span class="p">)</span> <span class="k">for</span> <span class="n">file</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">recording_file</span><span class="o">.</span><span class="n">rglob</span><span class="p">(</span><span class="s1">&#39;*&#39;</span><span class="p">)]</span>
+                        <span class="c1"># shutil.copytree(self.recording_file, self.session_path / self.recording_file.name)</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="k">raise</span> <span class="ne">FileNotFoundError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Session path </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">session_path</span><span class="si">}</span><span class="s2"> doesnt exist&quot;</span><span class="p">)</span>
+
+            <span class="k">except</span> <span class="p">(</span><span class="ne">FileNotFoundError</span><span class="p">,</span> <span class="ne">IOError</span><span class="p">)</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">socket_comm</span><span class="o">.</span><span class="n">send_json_message</span><span class="p">(</span><span class="n">SocketMessage</span><span class="o">.</span><span class="n">respond_copy_fail</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Error copying file </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+                <span class="k">return</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">files_copied</span> <span class="o">=</span> <span class="kc">True</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Finished copying files to </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">session_path</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">socket_comm</span><span class="o">.</span><span class="n">send_json_message</span><span class="p">(</span><span class="n">SocketMessage</span><span class="o">.</span><span class="n">respond_copy</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="SpikeGLX_Controller.send_socket_error">
+<a class="viewcode-back" href="../../api.html#spikeGLX_remote.spikeGLXremote_ctrl.SpikeGLX_Controller.send_socket_error">[docs]</a>
+    <span class="k">def</span> <span class="nf">send_socket_error</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;sends an error message to the remote main task controller&quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">socket_comm</span><span class="o">.</span><span class="n">connected</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">socket_comm</span><span class="o">.</span><span class="n">send_json_message</span><span class="p">(</span><span class="n">SocketMessage</span><span class="o">.</span><span class="n">status_error</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="SpikeGLX_Controller.enter_remote_mode">
+<a class="viewcode-back" href="../../api.html#spikeGLX_remote.spikeGLXremote_ctrl.SpikeGLX_Controller.enter_remote_mode">[docs]</a>
+    <span class="k">def</span> <span class="nf">enter_remote_mode</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Starts a thread that regularly checks for messages from the remote controller</span>
+<span class="sd">        Sends a status message to the remote controller</span>
+<span class="sd">        :return:</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">remote_thread</span> <span class="o">=</span> <span class="n">Thread</span><span class="p">(</span><span class="n">target</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">check_and_parse_messages</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">remote_thread_stop</span><span class="o">.</span><span class="n">clear</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">remote_thread</span><span class="o">.</span><span class="n">start</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">is_remote_ctr</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">socket_comm</span><span class="o">.</span><span class="n">send_json_message</span><span class="p">(</span><span class="n">SocketMessage</span><span class="o">.</span><span class="n">status_ready</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="SpikeGLX_Controller.exit_remote_mode">
+<a class="viewcode-back" href="../../api.html#spikeGLX_remote.spikeGLXremote_ctrl.SpikeGLX_Controller.exit_remote_mode">[docs]</a>
+    <span class="k">def</span> <span class="nf">exit_remote_mode</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        exits the remote mode, signals to stop the thread and closes the socket</span>
+<span class="sd">        :return:</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">remote_thread_stop</span><span class="o">.</span><span class="n">set</span><span class="p">()</span>
+        <span class="c1"># self.remote_thread.join()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">socket_comm</span><span class="o">.</span><span class="n">close_socket</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">is_remote_ctr</span> <span class="o">=</span> <span class="kc">False</span></div>
+
+
+<div class="viewcode-block" id="SpikeGLX_Controller.check_and_parse_messages">
+<a class="viewcode-back" href="../../api.html#spikeGLX_remote.spikeGLXremote_ctrl.SpikeGLX_Controller.check_and_parse_messages">[docs]</a>
+    <span class="k">def</span> <span class="nf">check_and_parse_messages</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        timed function that runs in a thread and checks for messages from the remote controller</span>
+<span class="sd">        checks every self.check_interval seconds</span>
+<span class="sd">        stops when self.remote_thread_stop Event is set</span>
+<span class="sd">        :return:</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">while</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">remote_thread_stop</span><span class="o">.</span><span class="n">is_set</span><span class="p">():</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">last_t_socket</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">check_interval</span> <span class="o">&gt;</span> <span class="n">time</span><span class="o">.</span><span class="n">monotonic</span><span class="p">():</span>  <span class="c1"># not enough time passed</span>
+                <span class="n">time</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="mf">0.01</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">socket_comm</span><span class="o">.</span><span class="n">connected</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s2">&quot;Client disconnected&quot;</span><span class="p">)</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">remote_thread_stop</span><span class="o">.</span><span class="n">set</span><span class="p">()</span>
+                    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">main</span><span class="p">:</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">main</span><span class="o">.</span><span class="n">exit_remote_mode</span><span class="p">()</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">exit_remote_mode</span><span class="p">()</span>
+                    <span class="k">return</span>
+                <span class="n">message</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">socket_comm</span><span class="o">.</span><span class="n">read_json_message_fast_linebreak</span><span class="p">()</span>
+
+                <span class="k">if</span> <span class="n">message</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">last_t_socket</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">monotonic</span><span class="p">()</span>  <span class="c1"># reset timer</span>
+                    <span class="k">if</span> <span class="n">message</span><span class="p">[</span><span class="s1">&#39;type&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="n">MessageType</span><span class="o">.</span><span class="n">start_video_rec</span><span class="o">.</span><span class="n">value</span> \
+                            <span class="ow">or</span> <span class="n">message</span><span class="p">[</span><span class="s1">&#39;type&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="n">MessageType</span><span class="o">.</span><span class="n">start_video_view</span><span class="o">.</span><span class="n">value</span><span class="p">:</span>
+                        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">is_recording</span> <span class="ow">and</span> <span class="n">message</span><span class="p">[</span><span class="s1">&#39;type&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="n">MessageType</span><span class="o">.</span><span class="n">start_video_rec</span><span class="o">.</span><span class="n">value</span><span class="p">:</span>
+                            <span class="c1"># got record but we already are !</span>
+                            <span class="bp">self</span><span class="o">.</span><span class="n">socket_comm</span><span class="o">.</span><span class="n">send_json_message</span><span class="p">(</span><span class="n">SocketMessage</span><span class="o">.</span><span class="n">status_error</span><span class="p">)</span>
+                            <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;got message to start, but something is already running!&quot;</span><span class="p">)</span>
+                            <span class="k">return</span>
+
+                        <span class="bp">self</span><span class="o">.</span><span class="n">session_id</span> <span class="o">=</span> <span class="n">message</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;session_id&quot;</span><span class="p">,</span> <span class="s1">&#39;MusterMaus&#39;</span><span class="p">)</span>
+                        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">main</span><span class="p">:</span>
+                            <span class="bp">self</span><span class="o">.</span><span class="n">main</span><span class="o">.</span><span class="n">SessionIDlineEdit</span><span class="o">.</span><span class="n">setText</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">session_id</span><span class="p">)</span>
+
+                        <span class="k">if</span> <span class="n">message</span><span class="p">[</span><span class="s1">&#39;type&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="n">MessageType</span><span class="o">.</span><span class="n">start_video_rec</span><span class="o">.</span><span class="n">value</span><span class="p">:</span>
+                            <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;got message to start recording&quot;</span><span class="p">)</span>
+                            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">main</span><span class="p">:</span>
+                                <span class="bp">self</span><span class="o">.</span><span class="n">main</span><span class="o">.</span><span class="n">start_recording</span><span class="p">()</span>
+                            <span class="k">else</span><span class="p">:</span>
+                                <span class="bp">self</span><span class="o">.</span><span class="n">start_recording</span><span class="p">()</span>
+
+                        <span class="k">elif</span> <span class="n">message</span><span class="p">[</span><span class="s1">&#39;type&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="n">MessageType</span><span class="o">.</span><span class="n">start_video_view</span><span class="o">.</span><span class="n">value</span><span class="p">:</span>
+                            <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;got message to start viewing&quot;</span><span class="p">)</span>
+                            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">main</span><span class="p">:</span>
+                                <span class="bp">self</span><span class="o">.</span><span class="n">main</span><span class="o">.</span><span class="n">start_run</span><span class="p">()</span>
+                            <span class="k">else</span><span class="p">:</span>
+                                <span class="bp">self</span><span class="o">.</span><span class="n">start_run</span><span class="p">()</span>
+
+                    <span class="k">elif</span> <span class="n">message</span><span class="p">[</span><span class="s1">&#39;type&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="n">MessageType</span><span class="o">.</span><span class="n">stop_video</span><span class="o">.</span><span class="n">value</span><span class="p">:</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;got message to stop&quot;</span><span class="p">)</span>
+                        <span class="c1"># self.stop_spikeglx() # TODO not sure which one to use</span>
+                        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">main</span><span class="p">:</span>
+                            <span class="bp">self</span><span class="o">.</span><span class="n">main</span><span class="o">.</span><span class="n">stop_recording</span><span class="p">()</span>
+                        <span class="k">else</span><span class="p">:</span>
+                            <span class="bp">self</span><span class="o">.</span><span class="n">stop_recording</span><span class="p">()</span>
+
+                    <span class="k">elif</span> <span class="n">message</span><span class="p">[</span><span class="s1">&#39;type&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="n">MessageType</span><span class="o">.</span><span class="n">poll_status</span><span class="o">.</span><span class="n">value</span><span class="p">:</span>
+                        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">is_recording</span><span class="p">:</span>
+                            <span class="bp">self</span><span class="o">.</span><span class="n">socket_comm</span><span class="o">.</span><span class="n">send_json_message</span><span class="p">(</span><span class="n">SocketMessage</span><span class="o">.</span><span class="n">status_recording</span><span class="p">)</span>
+                        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">is_viewing</span><span class="p">:</span>
+                            <span class="bp">self</span><span class="o">.</span><span class="n">socket_comm</span><span class="o">.</span><span class="n">send_json_message</span><span class="p">(</span><span class="n">SocketMessage</span><span class="o">.</span><span class="n">status_viewing</span><span class="p">)</span>
+                        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">is_remote_ctr</span><span class="p">:</span>
+                            <span class="bp">self</span><span class="o">.</span><span class="n">socket_comm</span><span class="o">.</span><span class="n">send_json_message</span><span class="p">(</span><span class="n">SocketMessage</span><span class="o">.</span><span class="n">status_ready</span><span class="p">)</span>
+                        <span class="k">else</span><span class="p">:</span>
+                            <span class="bp">self</span><span class="o">.</span><span class="n">socket_comm</span><span class="o">.</span><span class="n">send_json_message</span><span class="p">(</span><span class="n">SocketMessage</span><span class="o">.</span><span class="n">status_error</span><span class="p">)</span>
+
+                    <span class="k">elif</span> <span class="n">message</span><span class="p">[</span><span class="s1">&#39;type&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="n">MessageType</span><span class="o">.</span><span class="n">disconnected</span><span class="o">.</span><span class="n">value</span><span class="p">:</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;got message that client disconnected&quot;</span><span class="p">)</span>
+                        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">main</span><span class="p">:</span>
+                            <span class="bp">self</span><span class="o">.</span><span class="n">main</span><span class="o">.</span><span class="n">exit_remote_mode</span><span class="p">()</span>
+                        <span class="k">else</span><span class="p">:</span>
+                            <span class="bp">self</span><span class="o">.</span><span class="n">exit_remote_mode</span><span class="p">()</span>
+
+                    <span class="k">elif</span> <span class="n">message</span><span class="p">[</span><span class="s1">&#39;type&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="n">MessageType</span><span class="o">.</span><span class="n">copy_files</span><span class="o">.</span><span class="n">value</span><span class="p">:</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;got message to copy files&#39;</span><span class="p">)</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">session_path</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">message</span><span class="p">[</span><span class="s1">&#39;session_path&#39;</span><span class="p">])</span>
+                        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">session_path</span><span class="p">:</span>
+                            <span class="bp">self</span><span class="o">.</span><span class="n">copy_recorded_file</span><span class="p">()</span>
+
+                    <span class="k">elif</span> <span class="n">message</span><span class="p">[</span><span class="s1">&#39;type&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="n">MessageType</span><span class="o">.</span><span class="n">purge_files</span><span class="o">.</span><span class="n">value</span><span class="p">:</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;got message to purge files&#39;</span><span class="p">)</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">purge_recorded_file</span><span class="p">()</span></div>
+</div>
+
+
+
+<span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s1">&#39;__main__&#39;</span><span class="p">:</span>
+    <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Starting via __main__&#39;</span><span class="p">)</span>
+    <span class="n">controller</span> <span class="o">=</span> <span class="n">SpikeGLX_Controller</span><span class="p">()</span>
+    <span class="n">controller</span><span class="o">.</span><span class="n">socket_comm</span><span class="o">.</span><span class="n">threaded_accept_connection</span><span class="p">()</span>
+    <span class="k">while</span> <span class="ow">not</span> <span class="n">controller</span><span class="o">.</span><span class="n">socket_comm</span><span class="o">.</span><span class="n">connected</span><span class="p">:</span>
+        <span class="n">time</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="mf">0.5</span><span class="p">)</span>
+        <span class="c1"># controller.log.info(&quot;waiting for remote connection&quot;)</span>
+    <span class="n">controller</span><span class="o">.</span><span class="n">enter_remote_mode</span><span class="p">()</span>
+</pre></div>
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<search id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</search>
+<script>document.getElementById('searchbox').style.display = "block"</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../index.html">SpikeGLX_remote 0.5.0 documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../index.html" >Module code</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">spikeGLX_remote.spikeGLXremote_ctrl</a></li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+    &#169; Copyright 2024, Artur Schneider (Optophysiology, University Freiburg).
+      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 7.3.7.
+    </div>
+  </body>
+</html>
