@@ -1,12 +1,16 @@
 # SpikeGLX-remoteCTRL
-SpikeGLX python remote controller
+Python SpikeGLX remote controller
 
-Python based-remote control for SpikeGLX recording software. Needs to run on a Windows computer, on same computer or 
-network as SpikeGLX. Enables receiving and sending commands from other python processes over socket network to control
-SpikeGLX acquisition.
+Remote control for SpikeGLX recording software. Enables receiving and sending commands from other python processes over 
+socket network to control SpikeGLX acquisition.
+
+**It needs to run on a Windows computer (due to only DLLs being available)**, it can be the same computer running SpikeGLX or 
+a different Windows computer in the same network. 
+
 
 SglxApi is provided by Bill Karsh <https://github.com/billkarsh/SpikeGLX-CPP-SDK> and is included in this repository.
 
+Sphinx documentation can be found [here](https://arturoptophys.github.io/SpikeGLX-remoteCTRL/).
 
 ## Installation guide
 (Optional) Create and activate a conda environment
@@ -54,5 +58,5 @@ ctrl.stop_recording()    # stop recording
 ctrl.disconnect_spikeglx() # disconnect from SpikeGLX
 ```
 
-
 ## Remote control via sockets
+Describe here how to use socket utils to send out stuff.

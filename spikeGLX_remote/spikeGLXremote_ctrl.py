@@ -26,44 +26,85 @@ class SpikeGLX_Controller:
     """
     This class uses the spikeGLX-api to control the SpikeGLX recorder. Needs to run on a windows computer due to only
     dlls being available.
-    This application receives commands from the remote main TaskController via sockets
-    Things like setting the session name, channelmap settings, recording parameters, start/stop recording,
-    also should copy files upon receiving a path 2 copy
-    """
+    This application receives commands from the remote main TaskController via sockets, it can receive the session name
+    for the recording, start/stop recording, start viewing, copy files to the data server, purge files.
 
-    # TODO check if we are not on same machine then disable the copy functionality
-    # TODO move the NP_FOLDER to the remote controller and not have it hardcoded here
-    # if no main use some more descriptive console output
+    :param main: reference to the main GUI
+    :type main: GUI_utils.MainWindow
+
+    :parameter remote_thread_stop: Event to stop the remote thread
+    :type remote_thread_stop: threading.Event
+    :parameter remote_thread: thread to check for remote messages
+    :type remote_thread: threading.Thread
+    :parameter files_copied: flag if files were copied
+    :type files_copied: bool
+    :parameter session_path: path to copy the files to
+    :type session_path: Path
+    :parameter is_remote_ctr: flag if in remote control mode
+    :type is_remote_ctr: bool
+    :parameter rec_start_time: time when recording started
+    :type rec_start_time: float
+    :parameter hSglx: handle to the spikeglx api connection
+    :type hSglx: ctypes.c_void_p
+    :parameter is_recording: flag whether currently recording
+    :type is_recording: bool
+    :parameter is_viewing: flag whether currently viewing
+    :type is_viewing: bool
+    :parameter session_id: placeholder for the current session id
+    :type session_id: str
+    :parameter recording_file: placeholder for the recording file
+    :type recording_file: Path
+    :parameter log: logger object
+    :type log: logging.Logger
+    :parameter socket_comm: socket communication object
+    :type socket_comm: SocketComm
+    :parameter _save_path: path to save the recorded files
+    :type _save_path: Path
+    :parameter last_t_socket: last time we checked for a message from the remote controller
+    :type last_t_socket: float
+    :parameter check_interval: check interval for messages
+    :type check_interval: int
+    :parameter can_copy: flag if files can be copied
+    :type can_copy: bool
+    """
+    # TODO if no main use some more descriptive console output
     def __init__(self, main=None):
         self.main = main  # reference to the main gui
-        self.remote_thread_stop = Event()
-        self.remote_thread = None
-        self.files_copied = False
-        self.session_path = None
-        self.is_remote_ctr = False
+        self.remote_thread_stop = Event() # event to stop the remote thread
+        self.remote_thread = None # thread to check for remote messages
+        self.files_copied = False  # bool if files were copied
+        self.session_path = None  # path to copy the files to
+        self.is_remote_ctr = False  # bool if in remote control mode
         self.rec_start_time = None  # time when recording started
         self.hSglx = None  # handle to the spikeglx api connection
         self.is_recording = False  # bool whether currently recording
         self.is_viewing = False  # bool whether currently viewing
         self.session_id = None  # placeholder for the current session id
-        self.recording_file = None
+        self.recording_file = None  # placeholder for the recording file
         self.log = logging.getLogger('SpikeGLXController')
         self.log.setLevel(logging.INFO)
-        self.socket_comm = SocketComm('server', host=SPIKEGLX_HOST, port=SPIKEGLX_PORT)
+        self.socket_comm = SocketComm('server', host=REMOTE_HOST, port=REMOTE_PORT)
         self._save_path = Path(PATH2DATA)
         self.last_t_socket = time.monotonic()  # last time we checked for a message from the remote controller
         self.check_interval = 1  # s check interval for messages
+        self.can_copy = True if SPIKEGLX_COMPUTER == 'localhost' else False  # cant copy files if not on same machine
 
-        if not DEVELOPMENT:
+        if not DEVELOPMENT:  # switch off spikeGLX if in development mode (not on windows)
             self.connect_spikeglx()
             if self.hSglx is None:
                 self.log.error("Error connecting to SpikeGLX")
+
     @property
     def save_path(self):
         return self._save_path
 
     @save_path.setter
     def save_path(self, path: [str, Path]):
+        """
+        sets the save path for the recorded files, ensures its a Path object
+        :param path: str or Path object to set the save path
+        :return:
+        """
         try:
             self._save_path = Path(path)
         except TypeError:
@@ -76,7 +117,7 @@ class SpikeGLX_Controller:
             self.hSglx = sglx.c_sglx_createHandle()
 
             # Using default loopback address and port
-            if sglx.c_sglx_connect(self.hSglx, "localhost".encode(), 4142):
+            if sglx.c_sglx_connect(self.hSglx, SPIKEGLX_COMPUTER.encode(), SPIKEGLX_PORT):
                 self.log.info(f"Connected to {sglx.c_sglx_getVersion(self.hSglx).decode()}")
             else:
                 error = sglx.c_sglx_getError(self.hSglx).decode()
@@ -97,7 +138,11 @@ class SpikeGLX_Controller:
             self.hSglx = None
             self.log.debug("Closed connection to SpikeGLX")
 
-    def ask_is_initialized(self):
+    def ask_is_initialized(self) -> bool:
+        """
+        checks if spikeGLX is currently initialized, and thus ready to start
+        :return: bool if initialized
+        """
         hid = c_bool()
         ok = sglx.c_sglx_isInitialized(byref(hid), self.hSglx)
         if ok:
@@ -111,7 +156,11 @@ class SpikeGLX_Controller:
                 self.log.error(error)
             return False
 
-    def ask_is_running(self):
+    def ask_is_running(self) -> bool:
+        """
+        checks if spikeGLX is currently running
+        :return: bool if running
+        """
         hid = c_bool()
         ok = sglx.c_sglx_isRunning(byref(hid), self.hSglx)
         if ok:
@@ -125,7 +174,11 @@ class SpikeGLX_Controller:
                 self.log.error(error)
             return False
 
-    def ask_is_recording(self):
+    def ask_is_recording(self) -> bool:
+        """
+        checks if spikeGLX is currently recording
+        :return: bool if recording
+        """
         hid = c_bool()
         ok = sglx.c_sglx_isSaving(byref(hid), self.hSglx)
         if ok:
@@ -137,8 +190,7 @@ class SpikeGLX_Controller:
     def start_recording(self):
         """
         Sends message to spikeGLX process to start recording.
-        Before need to set parameters, save_path, session_id
-        To call this spike GLX needs to be initialized and running
+        To call this spikeGLX needs to be initialized and running.
         """
         self.files_copied = False
         if self.ask_is_running():
@@ -167,7 +219,7 @@ class SpikeGLX_Controller:
     def start_run(self):
         """
         Sends message to spikeGLX process to start viewing.
-        Need to send some parameters beforehand
+        To call this spikeGLX needs to be initialized.
         """
         if self.ask_is_initialized():
             if self.session_id is None:
@@ -207,7 +259,6 @@ class SpikeGLX_Controller:
     def stop_recording(self):
         """
         stops recording to file but continues viewing
-        not sure if needed
         """
         if self.ask_is_recording():
             ok = sglx.c_sglx_setRecordingEnable(self.hSglx, 0)
@@ -243,6 +294,10 @@ class SpikeGLX_Controller:
         deletes the previously recorded files
         """
         if self.is_recording is False and self.recording_file is not None:
+            if not self.can_copy:
+                self.log.error("Cant delete files if not on same machine")
+                self.socket_comm.send_json_message(SocketMessage.respond_copy_fail)
+                return
             self.log.info("Purging recorded files")
             shutil.rmtree(self.recording_file)
         self.recording_file = None
@@ -253,16 +308,20 @@ class SpikeGLX_Controller:
         """
         if self.is_recording is False and not self.files_copied and self.recording_file is not None:
             # copy the recorded files to the session folder
-            self.log.info(f"Copying folder {self.recording_file} to {self.session_path / NP_FOLDER}")
+            if not self.can_copy:
+                self.log.error("Cant copy files if not on same machine")
+                self.socket_comm.send_json_message(SocketMessage.respond_copy_fail)
+                return
+            self.log.info(f"Copying folder {self.recording_file} to {self.session_path}")
             try:
                 if 'MusterMaus' in self.session_id:
                     shutil.copytree(self.recording_file, self.session_path)
                 else:
                     if self.session_path.exists():
-                        (self.session_path / NP_FOLDER).mkdir(exist_ok=True)  # make sure we have the ephys folder ready
+                        self.session_path.mkdir(exist_ok=True)  # make sure we have the ephys folder ready
                         # copy only the folder content not the folder itself
-                        [shutil.copy2(file, self.session_path / NP_FOLDER) for file in self.recording_file.rglob('*')]
-                        # shutil.copytree(self.recording_file, self.session_path / NP_FOLDER / self.recording_file.name)
+                        [shutil.copy2(file, self.session_path) for file in self.recording_file.rglob('*')]
+                        # shutil.copytree(self.recording_file, self.session_path / self.recording_file.name)
                     else:
                         raise FileNotFoundError(f"Session path {self.session_path} doesnt exist")
 
@@ -271,7 +330,7 @@ class SpikeGLX_Controller:
                 self.log.error(f"Error copying file {e}")
                 return
             self.files_copied = True
-            self.log.info(f"Finished copying files to {self.session_path / NP_FOLDER}")
+            self.log.info(f"Finished copying files to {self.session_path}")
             self.socket_comm.send_json_message(SocketMessage.respond_copy)
 
     def send_socket_error(self):
@@ -280,8 +339,11 @@ class SpikeGLX_Controller:
             self.socket_comm.send_json_message(SocketMessage.status_error)
 
     def enter_remote_mode(self):
-        # rewerite using native python timer and not Qtimer
-        # so probably a thread that checks for messages and then acts upon them
+        """
+        Starts a thread that regularly checks for messages from the remote controller
+        Sends a status message to the remote controller
+        :return:
+        """
         self.remote_thread = Thread(target=self.check_and_parse_messages)
         self.remote_thread_stop.clear()
         self.remote_thread.start()
@@ -289,12 +351,22 @@ class SpikeGLX_Controller:
         self.socket_comm.send_json_message(SocketMessage.status_ready)
 
     def exit_remote_mode(self):
+        """
+        exits the remote mode, signals to stop the thread and closes the socket
+        :return:
+        """
         self.remote_thread_stop.set()
         # self.remote_thread.join()
         self.socket_comm.close_socket()
         self.is_remote_ctr = False
 
     def check_and_parse_messages(self):
+        """
+        timed function that runs in a thread and checks for messages from the remote controller
+        checks every self.check_interval seconds
+        stops when self.remote_thread_stop Event is set
+        :return:
+        """
         while not self.remote_thread_stop.is_set():
             if self.last_t_socket + self.check_interval > time.monotonic():  # not enough time passed
                 time.sleep(0.01)
@@ -344,7 +416,6 @@ class SpikeGLX_Controller:
                             self.main.stop_recording()
                         else:
                             self.stop_recording()
-
 
                     elif message['type'] == MessageType.poll_status.value:
                         if self.is_recording:

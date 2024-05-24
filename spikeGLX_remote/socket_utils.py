@@ -9,6 +9,10 @@ from enum import Enum
 
 
 class MessageType(Enum):
+    """
+    Enum for message types
+    to be able to change the message easily across the code
+    """
     start_daq = 'start_rec'
     stop_daq = 'stop'
     start_daq_pulses = 'start_pulses'
@@ -27,6 +31,10 @@ class MessageType(Enum):
 
 
 class MessageStatus(Enum):
+    """
+    Enum for message status
+    to be able to change the message easily across the code
+    """
     ready = 'ready'
     error = 'error'
     viewing = 'viewing'
@@ -42,6 +50,32 @@ class MessageStatus(Enum):
 
 
 class SocketMessage:
+    """
+    Class to hold all the messages that can be sent over the socket
+
+    :param session_path: str: path to the session
+    :param fps: float: frames per second
+    :param session_id: str: session id
+    :param daq_setting_file: str: path to the daq setting file
+    :param basler_setting_file: str: path to the basler setting file
+    :param pulse_lag: int: pulse lag after DAQ start
+    :param start_daq: dict: message to start the daq
+    :param stop_daq: dict: message to stop the daq
+    :param start_daq_pulses: dict: message to start the daq pulses
+    :param stop_daq_pulses: dict: message to stop the daq pulses
+    :param start_daq_viewing: dict: message to start the daq viewing
+    :param poll_status: dict: message to poll the status
+    :param start_video_rec: dict: message to start the video recording
+    :param start_video_view: dict: message to start the video viewing
+    :param stop_video: dict: message to stop the video
+    :param start_video_calibrec: dict: message to start the calibration recording
+
+    :param copy_files: dict: message to copy the files
+    :param purge_files: dict: message to purge the files
+    :param view_spike_glx: dict: message to view the spike glx
+    :param start_spike_glx: dict: message to start the spike glx
+    :param stop_spike_glx: dict: message to stop the spike glx
+    """
     status_error = {'type': MessageType.status.value, 'status': MessageStatus.error.value}
     status_ready = {'type': MessageType.status.value, 'status': MessageStatus.ready.value}
     status_recording = {'type': MessageType.status.value, 'status': MessageStatus.recording.value}
@@ -148,6 +182,10 @@ class SocketMessage:
         self.update_messages()
 
     def update_messages(self):
+        """
+        Updates all the messages with current values.
+        :return:
+        """
         self.start_daq.update(**{'session_id': self.session_id, 'setting_file': self.daq_setting_file})
         self.start_daq_viewing.update(**{'session_id': self._session_id,
                                          'setting_file': self.daq_setting_file})
@@ -166,16 +204,32 @@ class SocketMessage:
 
 class SocketComm:
     """
-    Socket communication class
+    Class to handle socket communication between processes or devices
+    :param soctype: str: type of socket, either 'client' or 'server'
+    :param host: str: host IP address
+    :param port: int: port number
+    :param use_ssl: bool: use ssl encryption
+
+    :param acception_thread: threading.Thread: thread to accept connection
+    :param ssl_sock: ssl.SSLSocket: ssl socket
+    :param sock: socket.socket: socket
+    :param _sock: socket.socket: socket
+    :param _ssl_sock: ssl.SSLSocket: ssl socket
+    :param context: ssl.SSLContext: ssl context
+    :param use_ssl: bool: use ssl encryption
+    :param connected: bool: connection status
+    :param stop_event: threading.Event: event to stop waiting for connection
+    :param log: logging.Logger: logger
+    :param message_time: float: time of last message
     """
 
-    def __init__(self, type: str = "server", host: str = "localhost", port: int = 8800, use_ssl: bool = False):
+    def __init__(self, soctype: str = "server", host: str = "localhost", port: int = 8800, use_ssl: bool = False):
         self.acception_thread = None
         self.ssl_sock = None
         self.sock = None
         self._sock = None
         self._ssl_sock = None
-        self.type = type
+        self.type = soctype
         self.host = host
         self.port = port
         if self.type == "server":
@@ -184,6 +238,8 @@ class SocketComm:
             self.context = ssl.create_default_context(ssl.Purpose.SERVER_AUTH)
         # self.context.set_ciphers('DEFAULT')
         self.use_ssl = use_ssl
+        if use_ssl:
+            raise NotImplementedError("SSL not implemented yet")
         # this doesnt work yet get some weird error from ssl module
         self.connected = False
         self.stop_event = threading.Event()
@@ -192,6 +248,9 @@ class SocketComm:
         self.message_time = time.monotonic()
 
     def create_socket(self):
+        """
+        Creates the socket for the server or client
+        """
         self._sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         if self.type == 'client':
             pass
@@ -199,12 +258,16 @@ class SocketComm:
             try:
                 self._sock.bind((self.host, self.port))
             except OSError:
-                self.log.warning('Adress alrady in use.. need to delete somehow ?')
+                self.log.warning('Address already in use.. need to delete somehow ?')
             self._sock.listen()
             if self.use_ssl:
                 self._ssl_sock = self.context.wrap_socket(self._sock, server_side=True, do_handshake_on_connect=False)
 
     def accept_connection(self):
+        """
+        Accepts connection-request from client
+        :return:
+        """
         self.create_socket()
         while not self.stop_event.is_set():
             if time.monotonic() - self.message_time > 5:
@@ -263,6 +326,10 @@ class SocketComm:
             # raise RuntimeError("Error: Cannot connect on server socket")
 
     def close_socket(self):
+        """
+        Closes the socket
+        :return:
+        """
         if self.use_ssl:
             if self.ssl_sock:
                 self.ssl_sock.close()
@@ -273,7 +340,11 @@ class SocketComm:
             self._sock.close()
         self.connected = False
 
-    def read_json_message(self) -> dict:
+    def read_json_message(self) -> [dict, None]:
+        """
+        Reads a json message from the socket until a linebreak is reached then decodes it via json
+        :return: dict, None: message or None if no message is received
+        """
         try:
             message = self._recv_until(b'\n')
             if message is not None:
@@ -284,7 +355,11 @@ class SocketComm:
             message = None
         return message
 
-    def read_json_message_fast(self) -> dict:
+    def read_json_message_fast(self) -> [dict, None]:
+        """
+        Reads a json message from the socket via a large bulk then decodes it via json
+        :return: dict, None: message or None if no message is received
+        """
         try:
             message = self._recv(1024)
             if message == -1:
@@ -298,7 +373,11 @@ class SocketComm:
             print('message decoding failed')
         return message
 
-    def read_json_message_fast_linebreak(self) -> dict:
+    def read_json_message_fast_linebreak(self) -> [dict,None]:
+        """
+        Reads a json message from the socket until a linebreak is reached then decodes it via json
+        :return: dict, None: message or None if no message is received
+        """
         try:
             message = self._recv_until(b'\n')
             if message == -1:
@@ -307,13 +386,18 @@ class SocketComm:
                 message = json.loads(message.decode())
         except json.decoder.JSONDecodeError:
             message = None
-            print('message decoding failed')
+            self.log.error('message decoding failed')
         except OSError:
             message = None
-            print('socket disconnected and deleted')
+            self.log.warning('socket disconnected and deleted')
         return message
 
     def send_json_message(self, message: dict):
+        """
+        Sends a json message over the socket
+        :param message: dict: message to send of SocketMessage type
+        :return:
+        """
         message = json.dumps(message).encode()
         message += b'\n'
         self._send(message)
@@ -345,7 +429,12 @@ class SocketComm:
             self.log.warning("Client disconnected")
             return -1
 
-    def _recv_until(self, delimiter) -> bytes:
+    def _recv_until(self, delimiter: bytes) -> [bytes, None, int]:
+        """
+        Receives data until a delimiter is reached
+        :param delimiter:  bytes: delimiter to stop receiving
+        :return: bytes, None, int: received data or None if no data is received or -1 if client disconnected
+        """
         data = b''
         try:
             if self.use_ssl:
@@ -385,13 +474,6 @@ class SocketComm:
                     break
         return data
 
-    # def is_connected(self):
-    #     try:
-    #         # This will raise an exception if the client is disconnected
-    #         self.sock.send(b'')
-    #         return True
-    #     except (BrokenPipeError, ConnectionResetError):
-    #         return False
 
 
 if __name__ == "__main__":

@@ -14,7 +14,7 @@ from spikeGLX_remote.spikeGLXremote_ctrl import SpikeGLX_Controller
 log = logging.getLogger('main')
 log.setLevel(logging.DEBUG)
 
-VERSION = "0.3.0"
+VERSION = "0.5.0"
 
 if os.sys.platform == "win32":
     DEVELOPMENT = False

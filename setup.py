@@ -3,7 +3,7 @@ from setuptools import setup, find_packages
 
 setup(
     name="spikeglx_remote",
-    version='0.3.0',
+    version='0.5.0',
     description=f'Python based-remote control for SpikeGLX recording software. '
                 f'Needs to run on a Windows computer, on same computer or network as SpikeGLX.'
                 f'Enables receiving and sending commands from other python processes over socket network to control '

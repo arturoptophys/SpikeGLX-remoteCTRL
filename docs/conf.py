@@ -9,7 +9,7 @@
 project = 'SpikeGLX_remote'
 copyright = '2024, Artur Schneider (Optophysiology, University Freiburg)'
 author = 'Artur'
-release = '0.3.0'
+release = '0.5.0'
 
 import os
 import sys
