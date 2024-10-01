@@ -2,9 +2,16 @@
 # modified from https://github.com/billkarsh/SpikeGLX-CPP-SDK
 from ctypes import *
 from pathlib import Path
-dll_path = Path(__file__).parent.absolute() / "SglxApi.dll"
+import os
+
+if os.name == 'nt':
+    dll_path = Path(__file__).parent.absolute() / "API" / "SglxApi.dll"
+elif os.name == 'posix':
+    dll_path = Path(__file__).parent.absolute() / "API" / "libSglxApi.so"
+
 #add current directory to path
 import sys
+
 sys.path.append(str(Path(__file__).parent))
 # Load the SpikeGLX DLL.
 try:
@@ -27,13 +34,21 @@ except FileNotFoundError:
 # Status callback for use with par2 and verifySHA1 calls.
 # sglx_demo_callback( status_string )
 #
-T_sglx_callback = WINFUNCTYPE(None, c_char_p)
+if os.name == 'nt':
+    T_sglx_callback = WINFUNCTYPE(None, c_char_p)
 
 
-@T_sglx_callback
-def sglx_demo_callback(status):
-    print(status)
+    @T_sglx_callback
+    def sglx_demo_callback(status):
+        print(status)
 
+elif os.name == 'posix':
+    T_sglx_callback = CFUNCTYPE(None, c_char_p)
+
+
+    @T_sglx_callback
+    def sglx_demo_callback(status):
+        print(status)
 
 # After a call returning (nval) strings, retrieve the ith
 # string with this function. Index (ith) is zero-based.

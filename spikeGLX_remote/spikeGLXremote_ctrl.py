@@ -16,8 +16,8 @@ if os.sys.platform == "win32":
 else:
     DEVELOPMENT = True
 
-if not DEVELOPMENT:
-    import spikeGLX_remote.sglx as sglx
+#if not DEVELOPMENT:
+import spikeGLX_remote.sglx as sglx
 
 from config import *
 
