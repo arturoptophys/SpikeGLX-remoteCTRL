@@ -8,11 +8,13 @@ if os.name == 'nt':
     dll_path = Path(__file__).parent.absolute() / "API" / "SglxApi.dll"
 elif os.name == 'posix':
     dll_path = Path(__file__).parent.absolute() / "API" / "libSglxApi.so"
+else:
+    raise OSError('Only Linux or Windows libraries are available')
 
 #add current directory to path
 import sys
-
 sys.path.append(str(Path(__file__).parent))
+
 # Load the SpikeGLX DLL.
 try:
     sglx = CDLL(str(dll_path), winmode=0)
