@@ -4,11 +4,14 @@ Python SpikeGLX remote controller
 Remote control for SpikeGLX recording software. Enables receiving and sending commands from other python processes over 
 socket network to control SpikeGLX acquisition.
 
-**It needs to run on a Windows computer (due to only DLLs being available)**, it can be the same computer running SpikeGLX or 
-a different Windows computer in the same network. 
-
+It can be the same computer running SpikeGLX or a different computer in the same network.
+*NEW* now also with Linux libraries from Bill.
 
 SglxApi is provided by Bill Karsh <https://github.com/billkarsh/SpikeGLX-CPP-SDK> and is included in this repository.
+To install or update the SpikeGLX-remoteCTRL package:
+- On windows copy the *.dll into the API folder
+- On linux: build the API by running make-install.sh  in SpikeGLX-CPP-SDK/Linux and copy the 
+resulting files into SpikeGLX-remoteCTRL/spikeGLX_remote/API
 
 Sphinx documentation can be found [here](https://arturoptophys.github.io/SpikeGLX-remoteCTRL/).
 
