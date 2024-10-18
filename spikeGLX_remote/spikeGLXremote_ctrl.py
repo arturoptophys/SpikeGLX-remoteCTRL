@@ -88,7 +88,7 @@ class SpikeGLX_Controller:
         self.last_t_socket = time.monotonic()  # last time we checked for a message from the remote controller
         self.check_interval = 1  # s check interval for messages
         self.can_copy = True if SPIKEGLX_COMPUTER == 'localhost' else False  # cant copy files if not on same machine
-
+        self.files_list2copy = []  # list of files to copy
         if not DEVELOPMENT:  # switch off spikeGLX if in development mode (not on windows)
             self.connect_spikeglx()
             if self.hSglx is None:
@@ -333,6 +333,48 @@ class SpikeGLX_Controller:
             self.log.info(f"Finished copying files to {self.session_path}")
             self.socket_comm.send_json_message(SocketMessage.respond_copy)
 
+    def add_to_copy_list(self):
+        """
+        adds recorded files to the list to be copied later as copy might be long
+        """
+        if self.is_recording is False and self.recording_file is not None:
+            # copy the recorded files to the session folder
+            if not self.can_copy:
+                self.log.error("Cant copy files if not on same machine")
+                self.socket_comm.send_json_message(SocketMessage.respond_copy_fail)
+                return
+            self.log.info(f"adding folder {self.recording_file} to list")
+            self.files_list2copy.append({'session':self.session_id, 'files': self.recording_file,
+                                        'directory': self.session_path})
+            if self.main:
+                self.main.update_copy_view()
+
+    def clear_copy_list(self):
+        """
+        clears the list of files to be copied
+        """
+        self.files_list2copy = []
+
+    def copy_file_list(self):
+        """
+        copies the files in the list to the session folder on the data server
+        """
+        for sess in self.files_list2copy:
+            self.log.error(f"Copying folder {sess['files']} to {sess['directory']}")
+            try:
+                if 'MusterMaus' in sess['session']:
+                    shutil.copytree(sess['files'], sess['directory'])
+                else:
+                    if sess['directory'].exists():
+                        sess['directory'].mkdir(exist_ok=True)  # make sure we have the ephys folder ready
+                        # copy only the folder content not the folder itself
+                        [shutil.copy2(file, sess['directory']) for file in sess['files'].rglob('*')]
+                    else:
+                        raise FileNotFoundError(f"Session path {sess['directory']} doesnt exist")
+            except (FileNotFoundError, IOError) as e:
+                self.socket_comm.send_json_message(SocketMessage.respond_copy_fail)
+                self.log.error(f"Error copying file {e}")
+
     def send_socket_error(self):
         """sends an error message to the remote main task controller"""
         if self.socket_comm.connected:
@@ -438,7 +480,10 @@ class SpikeGLX_Controller:
                         self.log.debug('got message to copy files')
                         self.session_path = Path(message['session_path'])
                         if self.session_path:
-                            self.copy_recorded_file()
+                            if COPY_DIRECT:
+                                self.copy_recorded_file()
+                            else:
+                                self.add_to_copy_list()
 
                     elif message['type'] == MessageType.purge_files.value:
                         self.log.debug('got message to purge files')

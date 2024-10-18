@@ -5,7 +5,7 @@ from pathlib import Path
 from queue import Queue
 import logging
 from spikeGLX_remote.GUI_utils import RemoteConnDialog
-from PyQt6.QtWidgets import QApplication, QMainWindow, QFileDialog, QMessageBox
+from PyQt6.QtWidgets import QApplication, QMainWindow, QFileDialog, QMessageBox, QTableWidgetItem
 from PyQt6.QtCore import Qt, QTimer
 from PyQt6 import uic, QtGui
 
@@ -21,6 +21,7 @@ if os.sys.platform == "win32":
 else:
     DEVELOPMENT = True
 
+from config import COPY_DIRECT
 
 class SpikeGLX_ControllerGUI(QMainWindow):
     """
@@ -57,6 +58,9 @@ class SpikeGLX_ControllerGUI(QMainWindow):
                 self.RECButton.setEnabled(True)
                 self.RUNButton.setEnabled(True)
                 self.spikeGLXConnectB.setEnabled(False)
+        if COPY_DIRECT:
+            self.CopyButton.setEnabled(False)
+            self.clearCopyButton.setEnabled(False)
 
     def connect_spikeglx(self):
         """Calls controller to create the connection handle to the SpikeGLX process"""
@@ -146,6 +150,29 @@ class SpikeGLX_ControllerGUI(QMainWindow):
         else:
             self.log.warning('Not allowed in remote mode.')
 
+    def update_copy_view(self):
+        """
+        updates copy_tableWidget with the files to be copied
+        """
+        self.copy_tableWidget.setRowCount(len(self.spikeglx_ctrl.files_list2copy))
+        for row, sess in enumerate(self.spikeglx_ctrl.files_list2copy):
+            self.copy_tableWidget.setItem(row, 0, QTableWidgetItem(sess['session']))
+            self.copy_tableWidget.setItem(row, 1, QTableWidgetItem(sess['directory']))
+
+    def copy_file_list(self):
+        """
+        calls the controller to copy the files in the copy list
+        """
+        self.spikeglx_ctrl.copy_file_list()
+        self.update_copy_view()
+
+    def clear_copy_list(self):
+        """
+        clears the copy list
+        """
+        self.spikeglx_ctrl.clear_copy_list()
+        self.update_copy_view()
+
     def ConnectSignals(self):
         """connects events to actions"""
         self.Save_pathButton.clicked.connect(self.set_save_path)
@@ -155,6 +182,8 @@ class SpikeGLX_ControllerGUI(QMainWindow):
         self.RUNButton.clicked.connect(self.start_run)
         self.EmergencyStopTaskB.clicked.connect(self.stop_spikeglx)  # will not reenable buttons if remote-ctl
         self.spikeGLXConnectB.clicked.connect(self.connect_spikeglx)
+        self.CopyButton.clicked.connect(self.copy_file_list)
+        self.clearCopyButton.clicked.connect(self.clear_copy_list)
 
     def set_save_path(self, save_path: (str, Path, None) = None):
         """

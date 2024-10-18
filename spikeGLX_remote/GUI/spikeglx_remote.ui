@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>706</width>
-    <height>698</height>
+    <width>712</width>
+    <height>611</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -75,9 +75,9 @@ REMOTE mode</string>
     <property name="geometry">
      <rect>
       <x>10</x>
-      <y>370</y>
-      <width>611</width>
-      <height>271</height>
+      <y>390</y>
+      <width>691</width>
+      <height>171</height>
      </rect>
     </property>
     <property name="font">
@@ -248,7 +248,7 @@ Savepath</string>
     <property name="geometry">
      <rect>
       <x>20</x>
-      <y>260</y>
+      <y>210</y>
       <width>101</width>
       <height>25</height>
      </rect>
@@ -257,13 +257,57 @@ Savepath</string>
      <string>HideConsole</string>
     </property>
    </widget>
+   <widget class="QTableWidget" name="copy_tableWidget">
+    <property name="geometry">
+     <rect>
+      <x>10</x>
+      <y>251</y>
+      <width>691</width>
+      <height>131</height>
+     </rect>
+    </property>
+    <property name="font">
+     <font>
+      <pointsize>9</pointsize>
+     </font>
+    </property>
+   </widget>
+   <widget class="QPushButton" name="CopyButton">
+    <property name="geometry">
+     <rect>
+      <x>560</x>
+      <y>200</y>
+      <width>81</width>
+      <height>41</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>CopyFiles</string>
+    </property>
+   </widget>
+   <widget class="QPushButton" name="clearCopyButton">
+    <property name="geometry">
+     <rect>
+      <x>660</x>
+      <y>200</y>
+      <width>41</width>
+      <height>21</height>
+     </rect>
+    </property>
+    <property name="styleSheet">
+     <string notr="true">QPushButton {background-color: magenta;}</string>
+    </property>
+    <property name="text">
+     <string>Clear</string>
+    </property>
+   </widget>
   </widget>
   <widget class="QMenuBar" name="menubar">
    <property name="geometry">
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>706</width>
+     <width>712</width>
      <height>22</height>
     </rect>
    </property>
