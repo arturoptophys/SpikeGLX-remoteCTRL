@@ -156,8 +156,8 @@ class SpikeGLX_ControllerGUI(QMainWindow):
         """
         self.copy_tableWidget.setRowCount(len(self.spikeglx_ctrl.files_list2copy))
         for row, sess in enumerate(self.spikeglx_ctrl.files_list2copy):
-            self.copy_tableWidget.setItem(row, 0, QTableWidgetItem(sess['session']))
-            self.copy_tableWidget.setItem(row, 1, QTableWidgetItem(sess['directory']))
+            self.copy_tableWidget.setItem(row, 0, QTableWidgetItem(sess['session_id']))
+            self.copy_tableWidget.setItem(row, 1, QTableWidgetItem(str(sess['directory'])))
 
     def copy_file_list(self):
         """
