@@ -14,7 +14,7 @@ from spikeGLX_remote.spikeGLXremote_ctrl import SpikeGLX_Controller
 log = logging.getLogger('main')
 log.setLevel(logging.DEBUG)
 
-VERSION = "0.6.0"
+VERSION = "0.7.0"
 
 if os.sys.platform == "win32":
     DEVELOPMENT = False
@@ -155,9 +155,12 @@ class SpikeGLX_ControllerGUI(QMainWindow):
         updates copy_tableWidget with the files to be copied
         """
         self.copy_tableWidget.setRowCount(len(self.spikeglx_ctrl.files_list2copy))
+        self.copy_tableWidget.setColumnCount(2)
+        self.copy_tableWidget.setHorizontalHeaderLabels(['Session', 'Path on server'])
         for row, sess in enumerate(self.spikeglx_ctrl.files_list2copy):
-            self.copy_tableWidget.setItem(row, 0, QTableWidgetItem(sess['session_id']))
+            self.copy_tableWidget.setItem(row, 0, QTableWidgetItem(sess['session']))
             self.copy_tableWidget.setItem(row, 1, QTableWidgetItem(str(sess['directory'])))
+        self.copy_tableWidget.horizontalHeader().setStretchLastSection(True)
 
     def copy_file_list(self):
         """
