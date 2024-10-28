@@ -23,6 +23,7 @@ else:
 
 from config import COPY_DIRECT
 
+
 class SpikeGLX_ControllerGUI(QMainWindow):
     """
     GUI wrapper for SpikeGLX_Controller
@@ -281,7 +282,7 @@ class SpikeGLX_ControllerGUI(QMainWindow):
         self.spikeglx_ctrl.exit_remote_mode()
         self.Client_label.setText("disconnected")
         self.RemoteModeButton.setText("Enable\nREMOTE-mode")
-        self.RemoteModeButton.setIcon(QtGui.QIcon(str(self._path2file.parent / 'GUI' /"icons/Signal.svg")))
+        self.RemoteModeButton.setIcon(QtGui.QIcon(str(self._path2file.parent / 'GUI' / "icons/Signal.svg")))
 
         # enable all buttons
         self.RUNButton.setEnabled(True)

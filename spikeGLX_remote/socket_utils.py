@@ -374,7 +374,7 @@ class SocketComm:
             print('message decoding failed')
         return message
 
-    def read_json_message_fast_linebreak(self) -> [dict,None]:
+    def read_json_message_fast_linebreak(self) -> [dict, None]:
         """
         Reads a json message from the socket until a linebreak is reached then decodes it via json
         :return: dict, None: message or None if no message is received
@@ -474,7 +474,6 @@ class SocketComm:
                 except socket.timeout:
                     break
         return data
-
 
 
 if __name__ == "__main__":

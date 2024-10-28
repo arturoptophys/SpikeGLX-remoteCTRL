@@ -377,7 +377,7 @@ class SpikeGLX_Controller:
                 self.socket_comm.send_json_message(SocketMessage.respond_copy_fail)
                 self.log.error(f"Error copying file {e}")
 
-        if copied: # if succesfully copied
+        # if copied: # if succesfully copied
             self.clear_copy_list()
 
     def send_socket_error(self):
