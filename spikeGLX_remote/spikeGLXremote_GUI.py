@@ -155,9 +155,13 @@ class SpikeGLX_ControllerGUI(QMainWindow):
         updates copy_tableWidget with the files to be copied
         """
         self.copy_tableWidget.setRowCount(len(self.spikeglx_ctrl.files_list2copy))
+        #set headers
+        self.copy_tableWidget.setHorizontalHeaderLabels(['Session', 'Directory', 'Compressed?'])
         for row, sess in enumerate(self.spikeglx_ctrl.files_list2copy):
             self.copy_tableWidget.setItem(row, 0, QTableWidgetItem(sess['session']))
             self.copy_tableWidget.setItem(row, 1, QTableWidgetItem(sess['directory']))
+            self.copy_tableWidget.setItem(row, 2, QTableWidgetItem(sess.get('compressed', 'No')))
+        self.copy_tableWidget.resizeColumnsToContents()
 
     def copy_file_list(self):
         """
@@ -173,6 +177,10 @@ class SpikeGLX_ControllerGUI(QMainWindow):
         self.spikeglx_ctrl.clear_copy_list()
         self.update_copy_view()
 
+    def compress_list(self):
+        self.spikeglx_ctrl.compress_file_list()
+        self.update_copy_view()
+
     def ConnectSignals(self):
         """connects events to actions"""
         self.Save_pathButton.clicked.connect(self.set_save_path)
@@ -184,6 +192,7 @@ class SpikeGLX_ControllerGUI(QMainWindow):
         self.spikeGLXConnectB.clicked.connect(self.connect_spikeglx)
         self.CopyButton.clicked.connect(self.copy_file_list)
         self.clearCopyButton.clicked.connect(self.clear_copy_list)
+        self.compress_pushButton.clicked.connect(self.compress_list)
 
     def set_save_path(self, save_path: (str, Path, None) = None):
         """

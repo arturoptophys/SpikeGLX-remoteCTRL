@@ -5,7 +5,11 @@ import time
 from ctypes import byref, c_bool
 from pathlib import Path
 from threading import Thread, Event
+import numpy as np
 
+from mtscomp.mtscomp import compress as mtscompress
+
+from npxcompress.sglx_utils import get_num_saved_channels, get_sample_rate, read_meta
 from spikeGLX_remote.socket_utils import SocketComm, SocketMessage, MessageType
 
 log = logging.getLogger('controller')
@@ -302,6 +306,36 @@ class SpikeGLX_Controller:
             shutil.rmtree(self.recording_file)
         self.recording_file = None
 
+    @staticmethod
+    def compress_recorded_file(path2file: [Path,str]) -> [Path,int]:
+        """
+        compresses the previously recorded files
+        """
+        if isinstance(path2file, str):
+            path2file = Path(path2file)
+        if path2file.exists():
+            if not path2file.is_dir():
+                path2file = path2file.parent
+            # find the ap.bin file get its name
+            try:
+                metafile = list(path2file.glob('*.ap.meta'))[0]
+                bin_file = list(path2file.glob('*.ap.bin'))[0]
+                out_file = bin_file.with_suffix('.cbin')
+                out_meta = bin_file.with_suffix('.ch')
+                out_file = out_file.parent / 'compressed' /out_file.name
+                out_meta = out_meta.parent / 'compressed' / out_meta.name
+                meta = read_meta(metafile)
+                sample_rate = get_sample_rate(meta)
+                n_channels = get_num_saved_channels(meta)
+            except IndexError:
+                log.error(f"No ap.bin file found at {path2file}")
+                return 0
+            mtscompress(bin_file,out_file,out_meta,sample_rate=sample_rate, n_channels=n_channels, dtype = np.int16)
+        else:
+            log.error(f"Path {path2file} not found")
+            return 0
+        return out_file.parent
+
     def copy_recorded_file(self):
         """
         copies the recorded files to the session folder on the data server
@@ -354,6 +388,20 @@ class SpikeGLX_Controller:
         clears the list of files to be copied
         """
         self.files_list2copy = []
+
+    def compress_file_list(self):
+        """
+        compresses the files in the copy list
+        """
+        for sess in self.files_list2copy:
+            self.log.error(f"Compressing folder {sess['files']}")
+            try:
+                new_path = self.compress_recorded_file(sess['files'])
+                if new_path:
+                    self.log.info(f"Finished compressing files to {new_path}")
+                    sess['files'] = new_path
+            except (FileNotFoundError, IOError) as e:
+                self.log.error(f"Error compressing file {e}")
 
     def copy_file_list(self):
         """

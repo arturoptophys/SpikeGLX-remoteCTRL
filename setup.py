@@ -14,6 +14,7 @@ setup(
     packages=find_packages(include=["spikeGLX_remote"], exclude=["docs" ".github"]),
     install_requires=[],
     extras_require={"GUI": [
-        "pyqt6 == 6.4.2"
+        "pyqt6 == 6.4.2",
+        "mtscomp"
     ]},
 )

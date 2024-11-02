@@ -275,7 +275,7 @@ Savepath</string>
    <widget class="QPushButton" name="CopyButton">
     <property name="geometry">
      <rect>
-      <x>560</x>
+      <x>540</x>
       <y>200</y>
       <width>81</width>
       <height>41</height>
@@ -288,8 +288,8 @@ Savepath</string>
    <widget class="QPushButton" name="clearCopyButton">
     <property name="geometry">
      <rect>
-      <x>660</x>
-      <y>200</y>
+      <x>630</x>
+      <y>170</y>
       <width>41</width>
       <height>21</height>
      </rect>
@@ -299,6 +299,22 @@ Savepath</string>
     </property>
     <property name="text">
      <string>Clear</string>
+    </property>
+   </widget>
+   <widget class="QPushButton" name="compress_pushButton">
+    <property name="geometry">
+     <rect>
+      <x>540</x>
+      <y>170</y>
+      <width>81</width>
+      <height>25</height>
+     </rect>
+    </property>
+    <property name="styleSheet">
+     <string notr="true">QPushButton {background-color: orange;}</string>
+    </property>
+    <property name="text">
+     <string>Compress</string>
     </property>
    </widget>
   </widget>
