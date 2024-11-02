@@ -14,7 +14,7 @@ from spikeGLX_remote.spikeGLXremote_ctrl import SpikeGLX_Controller
 log = logging.getLogger('main')
 log.setLevel(logging.DEBUG)
 
-VERSION = "0.6.0"
+VERSION = "0.8.0"
 
 if os.sys.platform == "win32":
     DEVELOPMENT = False
@@ -22,6 +22,7 @@ else:
     DEVELOPMENT = True
 
 from config import COPY_DIRECT
+
 
 class SpikeGLX_ControllerGUI(QMainWindow):
     """
@@ -155,13 +156,13 @@ class SpikeGLX_ControllerGUI(QMainWindow):
         updates copy_tableWidget with the files to be copied
         """
         self.copy_tableWidget.setRowCount(len(self.spikeglx_ctrl.files_list2copy))
-        #set headers
+        self.copy_tableWidget.setColumnCount(3)
         self.copy_tableWidget.setHorizontalHeaderLabels(['Session', 'Directory', 'Compressed?'])
         for row, sess in enumerate(self.spikeglx_ctrl.files_list2copy):
             self.copy_tableWidget.setItem(row, 0, QTableWidgetItem(sess['session']))
-            self.copy_tableWidget.setItem(row, 1, QTableWidgetItem(sess['directory']))
+            self.copy_tableWidget.setItem(row, 1, QTableWidgetItem(str(sess['directory'])))
             self.copy_tableWidget.setItem(row, 2, QTableWidgetItem(sess.get('compressed', 'No')))
-        self.copy_tableWidget.resizeColumnsToContents()
+        self.copy_tableWidget.horizontalHeader().setStretchLastSection(True)
 
     def copy_file_list(self):
         """
@@ -175,10 +176,6 @@ class SpikeGLX_ControllerGUI(QMainWindow):
         clears the copy list
         """
         self.spikeglx_ctrl.clear_copy_list()
-        self.update_copy_view()
-
-    def compress_list(self):
-        self.spikeglx_ctrl.compress_file_list()
         self.update_copy_view()
 
     def ConnectSignals(self):
@@ -287,7 +284,7 @@ class SpikeGLX_ControllerGUI(QMainWindow):
         self.spikeglx_ctrl.exit_remote_mode()
         self.Client_label.setText("disconnected")
         self.RemoteModeButton.setText("Enable\nREMOTE-mode")
-        self.RemoteModeButton.setIcon(QtGui.QIcon(str(self._path2file.parent / 'GUI' /"icons/Signal.svg")))
+        self.RemoteModeButton.setIcon(QtGui.QIcon(str(self._path2file.parent / 'GUI' / "icons/Signal.svg")))
 
         # enable all buttons
         self.RUNButton.setEnabled(True)

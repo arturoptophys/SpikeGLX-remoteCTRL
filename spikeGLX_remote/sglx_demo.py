@@ -3,7 +3,7 @@
 import sglx as sglx
 from ctypes import byref, POINTER, c_int, c_short, c_bool, c_char_p
 
-host = "localhost"
+host = "10.4.26.49"
 port = 4142
 
 def justConnect():

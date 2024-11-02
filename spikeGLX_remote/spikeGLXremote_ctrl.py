@@ -378,7 +378,7 @@ class SpikeGLX_Controller:
                 self.socket_comm.send_json_message(SocketMessage.respond_copy_fail)
                 return
             self.log.info(f"adding folder {self.recording_file} to list")
-            self.files_list2copy.append({'session':self.session_id, 'files': self.recording_file,
+            self.files_list2copy.append({'session': self.session_id, 'files': self.recording_file,
                                         'directory': self.session_path})
             if self.main:
                 self.main.update_copy_view()
@@ -407,8 +407,9 @@ class SpikeGLX_Controller:
         """
         copies the files in the list to the session folder on the data server
         """
+        copied = False
         for sess in self.files_list2copy:
-            self.log.error(f"Copying folder {sess['files']} to {sess['directory']}")
+            self.log.info(f"Copying folder {sess['files']} to {sess['directory']}")
             try:
                 if 'MusterMaus' in sess['session']:
                     shutil.copytree(sess['files'], sess['directory'])
@@ -417,11 +418,15 @@ class SpikeGLX_Controller:
                         sess['directory'].mkdir(exist_ok=True)  # make sure we have the ephys folder ready
                         # copy only the folder content not the folder itself
                         [shutil.copy2(file, sess['directory']) for file in sess['files'].rglob('*')]
+                        copied = True
                     else:
                         raise FileNotFoundError(f"Session path {sess['directory']} doesnt exist")
             except (FileNotFoundError, IOError) as e:
                 self.socket_comm.send_json_message(SocketMessage.respond_copy_fail)
                 self.log.error(f"Error copying file {e}")
+
+        # if copied: # if succesfully copied
+            self.clear_copy_list()
 
     def send_socket_error(self):
         """sends an error message to the remote main task controller"""
