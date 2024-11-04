@@ -7,9 +7,9 @@ from pathlib import Path
 from threading import Thread, Event
 import numpy as np
 
-from mtscomp.mtscomp import compress as mtscompress
+from mtscomp import compress as mtscompress
 
-from npxcompress.sglx_utils import get_num_saved_channels, get_sample_rate, read_meta
+from spikeGLX_remote.sglx_utils import get_num_saved_channels, get_sample_rate, read_meta
 from spikeGLX_remote.socket_utils import SocketComm, SocketMessage, MessageType
 
 log = logging.getLogger('controller')

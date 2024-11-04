@@ -178,6 +178,10 @@ class SpikeGLX_ControllerGUI(QMainWindow):
         self.spikeglx_ctrl.clear_copy_list()
         self.update_copy_view()
 
+    def compress_list(self):
+        self.spikeglx_ctrl.compress_file_list()
+        self.update_copy_view()
+
     def ConnectSignals(self):
         """connects events to actions"""
         self.Save_pathButton.clicked.connect(self.set_save_path)
