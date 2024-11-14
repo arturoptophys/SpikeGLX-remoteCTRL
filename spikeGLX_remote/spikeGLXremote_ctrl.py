@@ -20,7 +20,7 @@ if os.sys.platform == "win32":
 else:
     DEVELOPMENT = True
 
-#if not DEVELOPMENT:
+# if not DEVELOPMENT:
 import spikeGLX_remote.sglx as sglx
 
 from config import *
@@ -71,11 +71,12 @@ class SpikeGLX_Controller:
     :parameter can_copy: flag if files can be copied
     :type can_copy: bool
     """
+
     # TODO if no main use some more descriptive console output
     def __init__(self, main=None):
         self.main = main  # reference to the main gui
-        self.remote_thread_stop = Event() # event to stop the remote thread
-        self.remote_thread = None # thread to check for remote messages
+        self.remote_thread_stop = Event()  # event to stop the remote thread
+        self.remote_thread = None  # thread to check for remote messages
         self.files_copied = False  # bool if files were copied
         self.session_path = None  # path to copy the files to
         self.is_remote_ctr = False  # bool if in remote control mode
@@ -197,6 +198,7 @@ class SpikeGLX_Controller:
         To call this spikeGLX needs to be initialized and running.
         """
         self.files_copied = False
+        self.check_disk_space()
         if self.ask_is_running():
             self.recording_file = (self.save_path / self.session_id)
             self.recording_file.mkdir(exist_ok=True)
@@ -307,7 +309,7 @@ class SpikeGLX_Controller:
         self.recording_file = None
 
     @staticmethod
-    def compress_recorded_file(path2file: [Path,str]) -> [Path,int]:
+    def compress_recorded_file(path2file: [Path, str]) -> [Path, int]:
         """
         compresses the previously recorded files
         """
@@ -322,7 +324,7 @@ class SpikeGLX_Controller:
                 bin_file = list(path2file.glob('*.ap.bin'))[0]
                 out_file = bin_file.with_suffix('.cbin')
                 out_meta = bin_file.with_suffix('.ch')
-                out_file = out_file.parent / 'compressed' /out_file.name
+                out_file = out_file.parent / 'compressed' / out_file.name
                 out_meta = out_meta.parent / 'compressed' / out_meta.name
                 meta = read_meta(metafile)
                 sample_rate = get_sample_rate(meta)
@@ -330,7 +332,9 @@ class SpikeGLX_Controller:
             except IndexError:
                 log.error(f"No ap.bin file found at {path2file}")
                 return 0
-            mtscompress(bin_file,out_file,out_meta,sample_rate=sample_rate, n_channels=n_channels, dtype = np.int16)
+            mtscompress(bin_file, out_file, out_meta, sample_rate=sample_rate, n_channels=n_channels, dtype=np.int16)
+            # copy meta file
+            shutil.copy2(metafile, out_meta.parent)
         else:
             log.error(f"Path {path2file} not found")
             return 0
@@ -379,7 +383,7 @@ class SpikeGLX_Controller:
                 return
             self.log.info(f"adding folder {self.recording_file} to list")
             self.files_list2copy.append({'session': self.session_id, 'files': self.recording_file,
-                                        'directory': self.session_path})
+                                         'directory': self.session_path})
             if self.main:
                 self.main.update_copy_view()
 
@@ -394,14 +398,19 @@ class SpikeGLX_Controller:
         compresses the files in the copy list
         """
         for sess in self.files_list2copy:
-            self.log.error(f"Compressing folder {sess['files']}")
+            self.log.info(f"Compressing folder {sess['files']}")
             try:
                 new_path = self.compress_recorded_file(sess['files'])
                 if new_path:
                     self.log.info(f"Finished compressing files to {new_path}")
                     sess['files'] = new_path
+                    sess["compressed"] = "Yes"
+                else:
+                    raise IOError
             except (FileNotFoundError, IOError) as e:
                 self.log.error(f"Error compressing file {e}")
+        if COPY_AFTER_COMPRESS:
+            self.copy_file_list()
 
     def copy_file_list(self):
         """
@@ -425,7 +434,7 @@ class SpikeGLX_Controller:
                 self.socket_comm.send_json_message(SocketMessage.respond_copy_fail)
                 self.log.error(f"Error copying file {e}")
 
-        # if copied: # if succesfully copied
+            # if copied: # if succesfully copied
             self.clear_copy_list()
 
     def send_socket_error(self):
@@ -444,6 +453,18 @@ class SpikeGLX_Controller:
         self.remote_thread.start()
         self.is_remote_ctr = True
         self.socket_comm.send_json_message(SocketMessage.status_ready)
+
+    def check_disk_space(self):
+        """
+        Check if we have enough free disk space on the indicated drive for >1h recording
+        :return:
+        """
+        _, _, free = shutil.disk_usage(self._save_path)
+        free = free // 2**30
+        if free < WARN_DISK_SPACE:
+            self.log.warning(f'Not enough disc space on {self._save_path}')
+            if self.is_remote_ctr:
+                self.socket_comm.send_json_message(SocketMessage.respond_recording_fail)
 
     def exit_remote_mode(self):
         """

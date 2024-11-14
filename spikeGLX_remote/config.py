@@ -5,3 +5,5 @@ REMOTE_PORT = 8882
 SPIKEGLX_COMPUTER = 'localhost'
 SPIKEGLX_PORT = 4142
 COPY_DIRECT = False # if True, the data will be copied directly to the server, if False, the data will be when the button is pressed
+COPY_AFTER_COMPRESS = True
+WARN_DISK_SPACE = 120 # GB warn if less disc space available
