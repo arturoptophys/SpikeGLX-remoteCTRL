@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+
+<html lang="en" data-content_root="./">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>API reference &#8212; SpikeGLX_remote 0.5.0 documentation</title>
+    <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=a746c00c" />
+    <link rel="stylesheet" type="text/css" href="_static/nature.css?v=7610408e" />
+    <script src="_static/documentation_options.js?v=1dd76d02"></script>
+    <script src="_static/doctools.js?v=9bcbadda"></script>
+    <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="prev" title="SpikeGLX-remoteCTRL" href="readme.html" /> 
+  </head><body>
+    <div class="related" role="navigation" aria-label="Related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="readme.html" title="SpikeGLX-remoteCTRL"
+             accesskey="P">previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="index.html">SpikeGLX_remote 0.5.0 documentation</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">API reference</a></li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <section id="api-reference">
+<h1>API reference<a class="headerlink" href="#api-reference" title="Link to this heading">¶</a></h1>
+<section id="module-spikeGLX_remote.config">
+<span id="spikeglx-remotectrl"></span><h2>SpikeGLX-remoteCTRL<a class="headerlink" href="#module-spikeGLX_remote.config" title="Link to this heading">¶</a></h2>
+<dl class="py class" id="module-spikeGLX_remote.socket_utils">
+<dt class="sig sig-object py" id="spikeGLX_remote.socket_utils.MessageStatus">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">spikeGLX_remote.socket_utils.</span></span><span class="sig-name descname"><span class="pre">MessageStatus</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">value</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">names</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">module</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">qualname</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">type</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">start</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">boundary</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/spikeGLX_remote/socket_utils.html#MessageStatus"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#spikeGLX_remote.socket_utils.MessageStatus" title="Link to this definition">¶</a></dt>
+<dd><p>Enum for message status
+to be able to change the message easily across the code</p>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="spikeGLX_remote.socket_utils.MessageType">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">spikeGLX_remote.socket_utils.</span></span><span class="sig-name descname"><span class="pre">MessageType</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">value</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">names</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">module</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">qualname</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">type</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">start</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">boundary</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/spikeGLX_remote/socket_utils.html#MessageType"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#spikeGLX_remote.socket_utils.MessageType" title="Link to this definition">¶</a></dt>
+<dd><p>Enum for message types
+to be able to change the message easily across the code</p>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="spikeGLX_remote.socket_utils.SocketComm">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">spikeGLX_remote.socket_utils.</span></span><span class="sig-name descname"><span class="pre">SocketComm</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">soctype</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'server'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">host</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'localhost'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">port</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">8800</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">use_ssl</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/spikeGLX_remote/socket_utils.html#SocketComm"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#spikeGLX_remote.socket_utils.SocketComm" title="Link to this definition">¶</a></dt>
+<dd><p>Class to handle socket communication between processes or devices
+:param soctype: str: type of socket, either ‘client’ or ‘server’
+:param host: str: host IP address
+:param port: int: port number
+:param use_ssl: bool: use ssl encryption</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>acception_thread</strong> – threading.Thread: thread to accept connection</p></li>
+<li><p><strong>ssl_sock</strong> – ssl.SSLSocket: ssl socket</p></li>
+<li><p><strong>sock</strong> – socket.socket: socket</p></li>
+<li><p><strong>_sock</strong> – socket.socket: socket</p></li>
+<li><p><strong>_ssl_sock</strong> – ssl.SSLSocket: ssl socket</p></li>
+<li><p><strong>context</strong> – ssl.SSLContext: ssl context</p></li>
+<li><p><strong>use_ssl</strong> – bool: use ssl encryption</p></li>
+<li><p><strong>connected</strong> – bool: connection status</p></li>
+<li><p><strong>stop_event</strong> – threading.Event: event to stop waiting for connection</p></li>
+<li><p><strong>log</strong> – logging.Logger: logger</p></li>
+<li><p><strong>message_time</strong> – float: time of last message</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="spikeGLX_remote.socket_utils.SocketComm.accept_connection">
+<span class="sig-name descname"><span class="pre">accept_connection</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/spikeGLX_remote/socket_utils.html#SocketComm.accept_connection"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#spikeGLX_remote.socket_utils.SocketComm.accept_connection" title="Link to this definition">¶</a></dt>
+<dd><p>Accepts connection-request from client
+:return:</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="spikeGLX_remote.socket_utils.SocketComm.close_socket">
+<span class="sig-name descname"><span class="pre">close_socket</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/spikeGLX_remote/socket_utils.html#SocketComm.close_socket"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#spikeGLX_remote.socket_utils.SocketComm.close_socket" title="Link to this definition">¶</a></dt>
+<dd><p>Closes the socket
+:return:</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="spikeGLX_remote.socket_utils.SocketComm.connect">
+<span class="sig-name descname"><span class="pre">connect</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">bool</span></span></span><a class="reference internal" href="_modules/spikeGLX_remote/socket_utils.html#SocketComm.connect"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#spikeGLX_remote.socket_utils.SocketComm.connect" title="Link to this definition">¶</a></dt>
+<dd><p>Connects to the server</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="spikeGLX_remote.socket_utils.SocketComm.create_socket">
+<span class="sig-name descname"><span class="pre">create_socket</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/spikeGLX_remote/socket_utils.html#SocketComm.create_socket"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#spikeGLX_remote.socket_utils.SocketComm.create_socket" title="Link to this definition">¶</a></dt>
+<dd><p>Creates the socket for the server or client</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="spikeGLX_remote.socket_utils.SocketComm.read_json_message">
+<span class="sig-name descname"><span class="pre">read_json_message</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">[&lt;class</span> <span class="pre">'dict'&gt;,</span> <span class="pre">None]</span></span></span><a class="reference internal" href="_modules/spikeGLX_remote/socket_utils.html#SocketComm.read_json_message"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#spikeGLX_remote.socket_utils.SocketComm.read_json_message" title="Link to this definition">¶</a></dt>
+<dd><p>Reads a json message from the socket until a linebreak is reached then decodes it via json
+:return: dict, None: message or None if no message is received</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="spikeGLX_remote.socket_utils.SocketComm.read_json_message_fast">
+<span class="sig-name descname"><span class="pre">read_json_message_fast</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">[&lt;class</span> <span class="pre">'dict'&gt;,</span> <span class="pre">None]</span></span></span><a class="reference internal" href="_modules/spikeGLX_remote/socket_utils.html#SocketComm.read_json_message_fast"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#spikeGLX_remote.socket_utils.SocketComm.read_json_message_fast" title="Link to this definition">¶</a></dt>
+<dd><p>Reads a json message from the socket via a large bulk then decodes it via json
+:return: dict, None: message or None if no message is received</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="spikeGLX_remote.socket_utils.SocketComm.read_json_message_fast_linebreak">
+<span class="sig-name descname"><span class="pre">read_json_message_fast_linebreak</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">[&lt;class</span> <span class="pre">'dict'&gt;,</span> <span class="pre">None]</span></span></span><a class="reference internal" href="_modules/spikeGLX_remote/socket_utils.html#SocketComm.read_json_message_fast_linebreak"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#spikeGLX_remote.socket_utils.SocketComm.read_json_message_fast_linebreak" title="Link to this definition">¶</a></dt>
+<dd><p>Reads a json message from the socket until a linebreak is reached then decodes it via json
+:return: dict, None: message or None if no message is received</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="spikeGLX_remote.socket_utils.SocketComm.send_json_message">
+<span class="sig-name descname"><span class="pre">send_json_message</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">message</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">dict</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/spikeGLX_remote/socket_utils.html#SocketComm.send_json_message"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#spikeGLX_remote.socket_utils.SocketComm.send_json_message" title="Link to this definition">¶</a></dt>
+<dd><p>Sends a json message over the socket
+:param message: dict: message to send of SocketMessage type
+:return:</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="spikeGLX_remote.socket_utils.SocketComm.stop_waiting_for_connection">
+<span class="sig-name descname"><span class="pre">stop_waiting_for_connection</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/spikeGLX_remote/socket_utils.html#SocketComm.stop_waiting_for_connection"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#spikeGLX_remote.socket_utils.SocketComm.stop_waiting_for_connection" title="Link to this definition">¶</a></dt>
+<dd><p>sets the stop event, so the thread will stop waiting for a connection</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="spikeGLX_remote.socket_utils.SocketComm.threaded_accept_connection">
+<span class="sig-name descname"><span class="pre">threaded_accept_connection</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/spikeGLX_remote/socket_utils.html#SocketComm.threaded_accept_connection"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#spikeGLX_remote.socket_utils.SocketComm.threaded_accept_connection" title="Link to this definition">¶</a></dt>
+<dd><p>Accepts connection in a separate thread, to not block the main thread</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="spikeGLX_remote.socket_utils.SocketMessage">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">spikeGLX_remote.socket_utils.</span></span><span class="sig-name descname"><span class="pre">SocketMessage</span></span><a class="reference internal" href="_modules/spikeGLX_remote/socket_utils.html#SocketMessage"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#spikeGLX_remote.socket_utils.SocketMessage" title="Link to this definition">¶</a></dt>
+<dd><p>Class to hold all the messages that can be sent over the socket</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>session_path</strong> – str: path to the session</p></li>
+<li><p><strong>fps</strong> – float: frames per second</p></li>
+<li><p><strong>session_id</strong> – str: session id</p></li>
+<li><p><strong>daq_setting_file</strong> – str: path to the daq setting file</p></li>
+<li><p><strong>basler_setting_file</strong> – str: path to the basler setting file</p></li>
+<li><p><strong>pulse_lag</strong> – int: pulse lag after DAQ start</p></li>
+<li><p><strong>start_daq</strong> – dict: message to start the daq</p></li>
+<li><p><strong>stop_daq</strong> – dict: message to stop the daq</p></li>
+<li><p><strong>start_daq_pulses</strong> – dict: message to start the daq pulses</p></li>
+<li><p><strong>stop_daq_pulses</strong> – dict: message to stop the daq pulses</p></li>
+<li><p><strong>start_daq_viewing</strong> – dict: message to start the daq viewing</p></li>
+<li><p><strong>poll_status</strong> – dict: message to poll the status</p></li>
+<li><p><strong>start_video_rec</strong> – dict: message to start the video recording</p></li>
+<li><p><strong>start_video_view</strong> – dict: message to start the video viewing</p></li>
+<li><p><strong>stop_video</strong> – dict: message to stop the video</p></li>
+<li><p><strong>start_video_calibrec</strong> – dict: message to start the calibration recording</p></li>
+<li><p><strong>copy_files</strong> – dict: message to copy the files</p></li>
+<li><p><strong>purge_files</strong> – dict: message to purge the files</p></li>
+<li><p><strong>view_spike_glx</strong> – dict: message to view the spike glx</p></li>
+<li><p><strong>start_spike_glx</strong> – dict: message to start the spike glx</p></li>
+<li><p><strong>stop_spike_glx</strong> – dict: message to stop the spike glx</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="spikeGLX_remote.socket_utils.SocketMessage.update_messages">
+<span class="sig-name descname"><span class="pre">update_messages</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/spikeGLX_remote/socket_utils.html#SocketMessage.update_messages"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#spikeGLX_remote.socket_utils.SocketMessage.update_messages" title="Link to this definition">¶</a></dt>
+<dd><p>Updates all the messages with current values.
+:return:</p>
+</dd></dl>
+
+</dd></dl>
+
+<span class="target" id="module-spikeGLX_remote.sglx"></span></section>
+</section>
+
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="Main">
+        <div class="sphinxsidebarwrapper">
+  <div>
+    <h3><a href="index.html">Table of Contents</a></h3>
+    <ul>
+<li><a class="reference internal" href="#">API reference</a><ul>
+<li><a class="reference internal" href="#module-spikeGLX_remote.config">SpikeGLX-remoteCTRL</a><ul>
+<li><a class="reference internal" href="#spikeGLX_remote.socket_utils.MessageStatus"><code class="docutils literal notranslate"><span class="pre">MessageStatus</span></code></a></li>
+<li><a class="reference internal" href="#spikeGLX_remote.socket_utils.MessageType"><code class="docutils literal notranslate"><span class="pre">MessageType</span></code></a></li>
+<li><a class="reference internal" href="#spikeGLX_remote.socket_utils.SocketComm"><code class="docutils literal notranslate"><span class="pre">SocketComm</span></code></a><ul>
+<li><a class="reference internal" href="#spikeGLX_remote.socket_utils.SocketComm.accept_connection"><code class="docutils literal notranslate"><span class="pre">SocketComm.accept_connection()</span></code></a></li>
+<li><a class="reference internal" href="#spikeGLX_remote.socket_utils.SocketComm.close_socket"><code class="docutils literal notranslate"><span class="pre">SocketComm.close_socket()</span></code></a></li>
+<li><a class="reference internal" href="#spikeGLX_remote.socket_utils.SocketComm.connect"><code class="docutils literal notranslate"><span class="pre">SocketComm.connect()</span></code></a></li>
+<li><a class="reference internal" href="#spikeGLX_remote.socket_utils.SocketComm.create_socket"><code class="docutils literal notranslate"><span class="pre">SocketComm.create_socket()</span></code></a></li>
+<li><a class="reference internal" href="#spikeGLX_remote.socket_utils.SocketComm.read_json_message"><code class="docutils literal notranslate"><span class="pre">SocketComm.read_json_message()</span></code></a></li>
+<li><a class="reference internal" href="#spikeGLX_remote.socket_utils.SocketComm.read_json_message_fast"><code class="docutils literal notranslate"><span class="pre">SocketComm.read_json_message_fast()</span></code></a></li>
+<li><a class="reference internal" href="#spikeGLX_remote.socket_utils.SocketComm.read_json_message_fast_linebreak"><code class="docutils literal notranslate"><span class="pre">SocketComm.read_json_message_fast_linebreak()</span></code></a></li>
+<li><a class="reference internal" href="#spikeGLX_remote.socket_utils.SocketComm.send_json_message"><code class="docutils literal notranslate"><span class="pre">SocketComm.send_json_message()</span></code></a></li>
+<li><a class="reference internal" href="#spikeGLX_remote.socket_utils.SocketComm.stop_waiting_for_connection"><code class="docutils literal notranslate"><span class="pre">SocketComm.stop_waiting_for_connection()</span></code></a></li>
+<li><a class="reference internal" href="#spikeGLX_remote.socket_utils.SocketComm.threaded_accept_connection"><code class="docutils literal notranslate"><span class="pre">SocketComm.threaded_accept_connection()</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#spikeGLX_remote.socket_utils.SocketMessage"><code class="docutils literal notranslate"><span class="pre">SocketMessage</span></code></a><ul>
+<li><a class="reference internal" href="#spikeGLX_remote.socket_utils.SocketMessage.update_messages"><code class="docutils literal notranslate"><span class="pre">SocketMessage.update_messages()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+  </div>
+  <div>
+    <h4>Previous topic</h4>
+    <p class="topless"><a href="readme.html"
+                          title="previous chapter">SpikeGLX-remoteCTRL</a></p>
+  </div>
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="_sources/api.md.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div>
+<search id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</search>
+<script>document.getElementById('searchbox').style.display = "block"</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="Related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="readme.html" title="SpikeGLX-remoteCTRL"
+             >previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="index.html">SpikeGLX_remote 0.5.0 documentation</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">API reference</a></li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+    &#169; Copyright 2024, Artur Schneider (Optophysiology, University Freiburg).
+      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 8.1.3.
+    </div>
+  </body>
+</html>
